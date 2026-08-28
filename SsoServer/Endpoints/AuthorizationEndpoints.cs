@@ -73,15 +73,6 @@ public static class AuthorizationEndpoints
                     new[] { IdentityConstants.ApplicationScheme });
             }
 
-            var identity = new ClaimsIdentity(
-                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
-                nameType: Claims.Name,
-                roleType: Claims.Role);
-
-            identity.SetClaim(Claims.Subject, await userManager.GetUserIdAsync(user))
-                    .SetClaim(Claims.Email, await userManager.GetEmailAsync(user))
-                    .SetClaim(Claims.Name, await userManager.GetUserNameAsync(user));
-
             // Rôles globaux + rôles applicatifs assignés spécifiquement pour
             // le client qui demande ce jeton (union, jamais un remplacement :
             // un rôle global comme Admin doit continuer à fonctionner partout).
@@ -90,6 +81,43 @@ public static class AuthorizationEndpoints
                 .Where(x => x.UserId == user.Id && x.ClientId == request.ClientId)
                 .Select(x => x.Role.Name!)
                 .ToListAsync();
+
+            // Liste blanche par application : avoir un compte SSO valide ne
+            // suffit pas à entrer dans une application donnée, il faut au
+            // moins un rôle pour elle (global Admin, ou un rôle applicatif
+            // assigné spécifiquement pour ce client_id). Sans ça, n'importe
+            // quel compte pourrait se connecter à n'importe quelle
+            // application déclarée, même sans droit qui y soit réellement
+            // défini. Réponse standard OAuth2 (RFC 6749 §4.1.2.1) : redirige
+            // vers le redirect_uri du client avec error=access_denied,
+            // plutôt qu'émettre un jeton vide de sens.
+            if (!globalRoles.Contains(AppRoles.Admin) && appRoles.Count == 0)
+            {
+                // Ferme aussi la session Identity : sinon, cliquer à nouveau
+                // sur "Se connecter" retombe directement sur ce même refus
+                // (le cookie est encore valide, le formulaire de login ne
+                // se réaffiche jamais) — impossible d'essayer un autre
+                // compte sans vider les cookies à la main.
+                await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+
+                return Results.Forbid(
+                    authenticationSchemes: new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme },
+                    properties: new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.AccessDenied,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                            "Aucun rôle n'est assigné à ce compte pour cette application."
+                    }));
+            }
+
+            var identity = new ClaimsIdentity(
+                authenticationType: TokenValidationParameters.DefaultAuthenticationType,
+                nameType: Claims.Name,
+                roleType: Claims.Role);
+
+            identity.SetClaim(Claims.Subject, await userManager.GetUserIdAsync(user))
+                    .SetClaim(Claims.Email, await userManager.GetEmailAsync(user))
+                    .SetClaim(Claims.Name, await userManager.GetUserNameAsync(user));
 
             foreach (var role in globalRoles.Concat(appRoles).Distinct())
                 identity.AddClaim(Claims.Role, role);

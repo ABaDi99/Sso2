@@ -182,7 +182,7 @@ export default function App() {
                 className="btn small"
                 onClick={async () => {
                   await api.logout().catch(() => {});
-                  window.location.href = "/Account/Login";
+                  goToLogin();
                 }}
               >
                 Se déconnecter

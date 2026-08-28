@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { api, NotAuthenticated, goToLogin, type Role } from "../api";
 
+const PAGE_SIZE = 5;
+
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [page, setPage] = useState(1);
 
   async function load() {
     try {
@@ -48,6 +51,9 @@ export default function RolesPage() {
       setError(e instanceof Error ? e.message : "Suppression impossible.");
     }
   }
+
+  const pageCount = Math.max(1, Math.ceil((roles?.length ?? 0) / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
 
   return (
     <>
@@ -93,8 +99,11 @@ export default function RolesPage() {
             </p>
           </div>
         ) : (
+          <>
           <div className="rows">
-            {roles.map((r) => (
+            {roles
+              .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+              .map((r) => (
               <article className="row" key={r.id}>
                 <div className="row-main">
                   <div className="row-title">{r.name}</div>
@@ -120,6 +129,29 @@ export default function RolesPage() {
               </article>
             ))}
           </div>
+
+          {roles.length > PAGE_SIZE && (
+            <div className="pager">
+              <button
+                className="btn small"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Précédent
+              </button>
+              <span className="pager-label">
+                page {currentPage} sur {pageCount}
+              </span>
+              <button
+                className="btn small"
+                disabled={currentPage >= pageCount}
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              >
+                Suivant
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </>

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using ClientApi.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -70,8 +71,22 @@ public static class AuthEndpoints
             TokenStore tokenStore,
             ILogger<Program> logger,
             string? code,
-            string? state) =>
+            string? state,
+            [FromQuery(Name = "error")] string? oauthError,
+            [FromQuery(Name = "error_description")] string? oauthErrorDescription) =>
         {
+            // SsoServer refuse l'autorisation (ex: aucun rôle assigné pour
+            // cette application) : réponse standard OAuth2, pas un jeton.
+            if (!string.IsNullOrEmpty(oauthError))
+            {
+                logger.LogWarning(
+                    "Autorisation refusée par SsoServer : {Error} — {Description}",
+                    oauthError, oauthErrorDescription);
+                return Results.Json(
+                    new { error = "Accès refusé.", detail = oauthErrorDescription },
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
             if (string.IsNullOrEmpty(code))
                 return Results.BadRequest("Code manquant.");
 

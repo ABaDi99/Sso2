@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   api,
   NotAuthenticated,
@@ -11,6 +11,7 @@ import {
   type UserList,
   type UserSuspension,
 } from "../api";
+import { ActionsMenu } from "../components/ActionsMenu";
 
 const SUSPENSION_LABELS: Record<SuspensionType, string> = {
   Conge: "Congé",
@@ -53,90 +54,6 @@ function Select({
       >
         <path d="M6 9l6 6 6-6" />
       </svg>
-    </div>
-  );
-}
-
-/* ============================================================
-   Menu d'actions — regroupe les actions d'une ligne derrière un
-   seul bouton, plutôt qu'une rangée de boutons qui s'allonge à
-   chaque nouvelle fonctionnalité (on vient d'en ajouter une).
-   ============================================================ */
-interface MenuAction {
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-  disabled?: boolean;
-}
-type MenuEntry = MenuAction | "separator";
-
-function ActionsMenu({ items }: { items: MenuEntry[] }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onDocPointerDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", onDocPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onDocPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  return (
-    <div className="menu" ref={ref}>
-      <button
-        type="button"
-        className="btn small menu-btn"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        Actions
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="menu-panel" role="menu">
-          {items.map((item, i) =>
-            item === "separator" ? (
-              <div className="menu-sep" key={`sep-${i}`} />
-            ) : (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                className={"menu-item" + (item.danger ? " danger" : "")}
-                disabled={item.disabled}
-                onClick={() => {
-                  setOpen(false);
-                  item.onClick();
-                }}
-              >
-                {item.label}
-              </button>
-            )
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -217,7 +134,8 @@ export default function UsersPage() {
         <div>
           <h1>Comptes</h1>
           <p>
-            Un compte ici ouvre l'accès à toutes les applications connectées.
+            Un compte n'a accès à une application que si un rôle lui y est
+            assigné — voir "Rôles applicatifs".
           </p>
         </div>
         <button className="btn primary" onClick={() => setCreating(true)}>
@@ -392,7 +310,6 @@ export default function UsersPage() {
 
       {creating && (
         <CreateDialog
-          roles={roles}
           onCancel={() => setCreating(false)}
           onDone={() => {
             setCreating(false);
@@ -433,17 +350,14 @@ export default function UsersPage() {
    Création
    ============================================================ */
 function CreateDialog({
-  roles,
   onCancel,
   onDone,
 }: {
-  roles: Role[];
   onCancel: () => void;
   onDone: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [chosen, setChosen] = useState<string[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -451,7 +365,7 @@ function CreateDialog({
     setProblem(null);
     setBusy(true);
     try {
-      await api.users.create({ email: email.trim(), password, roles: chosen });
+      await api.users.create({ email: email.trim(), password });
       onDone();
     } catch (e) {
       if (e instanceof NotAuthenticated) return goToLogin();
@@ -469,7 +383,9 @@ function CreateDialog({
         <div className="dialog-head">
           <h2>Créer un compte</h2>
           <p>
-            La personne pourra se connecter à toutes les applications déclarées.
+            Sans rôle pour l'instant — assignez-les une fois que vous savez
+            à quelle(s) application(s) cette personne doit accéder, et avec
+            quel rôle.
           </p>
         </div>
 
@@ -503,34 +419,6 @@ function CreateDialog({
             </p>
           </div>
 
-          <div className="field">
-            <label>Rôles</label>
-            <div className="checks">
-              {roles.map((r) => (
-                <label
-                  key={r.name}
-                  className={"check" + (chosen.includes(r.name) ? " on" : "")}
-                >
-                  <input
-                    type="checkbox"
-                    checked={chosen.includes(r.name)}
-                    onChange={() =>
-                      setChosen((c) =>
-                        c.includes(r.name)
-                          ? c.filter((x) => x !== r.name)
-                          : [...c, r.name]
-                      )
-                    }
-                  />
-                  {r.name}
-                </label>
-              ))}
-            </div>
-            <p className="hint">
-              Ces rôles voyagent dans les jetons. Chaque application décide de
-              ce qu'ils permettent chez elle.
-            </p>
-          </div>
         </div>
 
         <div className="dialog-foot">

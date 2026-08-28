@@ -8,8 +8,11 @@ import {
   type ClientCreated,
   type ClientRoleAssignment,
 } from "../api";
+import { ActionsMenu } from "../components/ActionsMenu";
 
 const SCOPES = ["openid", "profile", "email", "roles", "offline_access"];
+
+const PAGE_SIZE = 5;
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[] | null>(null);
@@ -17,6 +20,7 @@ export default function ClientsPage() {
   const [creating, setCreating] = useState(false);
   const [revealed, setRevealed] = useState<ClientCreated | null>(null);
   const [viewing, setViewing] = useState<Client | null>(null);
+  const [page, setPage] = useState(1);
 
   async function load() {
     try {
@@ -44,6 +48,7 @@ export default function ClientsPage() {
       await api.clients.remove(client.id);
       load();
     } catch (e) {
+      if (e instanceof NotAuthenticated) return goToLogin();
       setError(e instanceof Error ? e.message : "Suppression impossible.");
     }
   }
@@ -65,9 +70,14 @@ export default function ClientsPage() {
         notice: result.notice,
       });
     } catch (e) {
+      if (e instanceof NotAuthenticated) return goToLogin();
       setError(e instanceof Error ? e.message : "Régénération impossible.");
     }
   }
+
+  const pageCount = Math.max(1, Math.ceil((clients?.length ?? 0) / PAGE_SIZE));
+  // Ne reste jamais sur une page vidée par une suppression.
+  const currentPage = Math.min(page, pageCount);
 
   return (
     <>
@@ -106,8 +116,11 @@ export default function ClientsPage() {
             </button>
           </div>
         ) : (
+          <>
           <div className="rows">
-            {clients.map((c) => (
+            {clients
+              .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+              .map((c) => (
               <article className="row" key={c.id}>
                 <div className="row-main">
                   <button
@@ -137,21 +150,43 @@ export default function ClientsPage() {
                 </div>
 
                 <div className="row-actions">
-                  {c.hasSecret && (
-                    <button className="btn small" onClick={() => rotate(c)}>
-                      Nouveau secret
-                    </button>
-                  )}
-                  <button
-                    className="btn small danger"
-                    onClick={() => remove(c)}
-                  >
-                    Supprimer
-                  </button>
+                  <ActionsMenu
+                    items={[
+                      { label: "Voir les détails", onClick: () => setViewing(c) },
+                      ...(c.hasSecret
+                        ? [{ label: "Nouveau secret", onClick: () => rotate(c) }]
+                        : []),
+                      "separator" as const,
+                      { label: "Supprimer", onClick: () => remove(c), danger: true },
+                    ]}
+                  />
                 </div>
               </article>
             ))}
           </div>
+
+          {clients.length > PAGE_SIZE && (
+            <div className="pager">
+              <button
+                className="btn small"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Précédent
+              </button>
+              <span className="pager-label">
+                page {currentPage} sur {pageCount}
+              </span>
+              <button
+                className="btn small"
+                disabled={currentPage >= pageCount}
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              >
+                Suivant
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
 
