@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../ClientApi/ClientApi.csproj" />
+  <Project Path="SsoServer.csproj" />
+</Solution>

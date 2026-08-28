@@ -1,0 +1,21 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+
+# Node / Vite
+node_modules/
+dist/
+SsoServer/wwwroot/admin/
+
+# Éditeurs / outillage IA
+.idea/
+.vscode/
+.claude/
+.cursor/
+.gemini/
+
+# Divers
+*.log
+*.Backup.tmp

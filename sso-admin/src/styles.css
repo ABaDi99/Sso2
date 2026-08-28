@@ -1,0 +1,931 @@
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+/* ============================================================
+   Jetons — identiques à la page de connexion : même produit,
+   même langage visuel.
+   ============================================================ */
+:root {
+  --paper: #f3f6f5;
+  --card: #ffffff;
+  --sunken: #edf2f1;
+  --ink: #10231f;
+  --ink-soft: #47605b;
+  --muted: #7b8d89;
+  --line: #dde5e3;
+  --line-soft: #e9efee;
+  --accent: #0e7c7b;
+  --accent-deep: #0a5654;
+  --accent-wash: #e5f1f0;
+  --accent-ring: rgba(14, 124, 123, 0.14);
+  --alert: #a33a2e;
+  --alert-wash: #fbedeb;
+  --alert-line: rgba(163, 58, 46, 0.22);
+  --ok: #0f7b4f;
+  --ok-wash: #e7f3ed;
+  --hover: #ecf1f0;
+  --on-accent: #ffffff;
+
+  --display: "Newsreader", Georgia, serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --paper: #0c1513;
+  --card: #131f1d;
+  --sunken: #0f1917;
+  --ink: #e3edea;
+  --ink-soft: #9fb3ae;
+  --muted: #728682;
+  --line: #24322f;
+  --line-soft: #1b2725;
+  --accent: #2fa8a3;
+  --accent-deep: #46bdb7;
+  --accent-wash: rgba(47, 168, 163, 0.12);
+  --accent-ring: rgba(47, 168, 163, 0.2);
+  --alert: #e58a7c;
+  --alert-wash: rgba(163, 58, 46, 0.13);
+  --alert-line: rgba(229, 138, 124, 0.28);
+  --ok: #5fc095;
+  --ok-wash: rgba(95, 192, 149, 0.12);
+  --hover: #1a2a27;
+  --on-accent: #071110;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   Structure
+   ============================================================ */
+.shell {
+  display: flex;
+  height: 100%;
+}
+
+.side {
+  width: 208px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--line-soft);
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.logotype {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  padding: 0 10px;
+  line-height: 1;
+  user-select: none;
+}
+.logotype em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 120ms ease, color 120ms ease;
+}
+.nav a:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.nav a.on {
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+}
+
+.side-foot {
+  margin-top: auto;
+  padding: 14px 10px 0;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.who {
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 26px 30px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.top h1 {
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.1;
+}
+.top p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.body {
+  padding: 22px 30px 60px;
+}
+
+/* ============================================================
+   Contrôles
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.btn:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+  border-color: var(--muted);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+
+.btn.danger {
+  color: var(--alert);
+}
+.btn.danger:hover:not(:disabled) {
+  background: var(--alert-wash);
+  border-color: var(--alert-line);
+}
+
+.btn.small {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.icon-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.icon-btn svg {
+  display: block;
+}
+.icon-btn .moon {
+  display: none;
+}
+html[data-theme="dark"] .icon-btn .sun {
+  display: none;
+}
+html[data-theme="dark"] .icon-btn .moon {
+  display: block;
+}
+
+label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 5px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  transition: background 120ms ease, border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+textarea {
+  font-family: var(--mono);
+  font-size: 13px;
+  resize: vertical;
+  min-height: 74px;
+}
+
+input[type="date"] {
+  font-family: var(--mono);
+  font-size: 13px;
+  color-scheme: light;
+}
+html[data-theme="dark"] input[type="date"] {
+  color-scheme: dark;
+}
+/* L'icône native du sélecteur de date reste sombre par défaut, illisible
+   sur fond sombre : on l'éclaircit avec le thème plutôt que de la masquer. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 3px;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background: var(--hover);
+}
+
+/* appearance:none seul, sans image de fond : certains moteurs
+   Chromium/WebView (Windows) n'appliquent pas complètement
+   appearance:none sur un <select> quand une background-image est
+   posée dessus, et répètent l'icône native sur toute la largeur.
+   La flèche est donc un vrai élément SVG superposé (.select-chevron),
+   jamais un arrière-plan CSS. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 32px;
+}
+
+.select-wrap {
+  position: relative;
+}
+.select-wrap select {
+  width: 100%;
+}
+.select-chevron {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  background: var(--card);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12.5px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.check:hover {
+  background: var(--hover);
+}
+.check input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.check.on {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+
+/* ============================================================
+   Listes
+   ============================================================ */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.row {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 15px 17px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.row-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.row-title {
+  font-family: var(--mono);
+  font-size: 14.5px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.row-title-btn {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.row-title-btn:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.row-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.uris {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.uris code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  word-break: break-all;
+}
+
+.row-actions {
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: var(--sunken);
+  color: var(--muted);
+}
+.tag.accent {
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+}
+.tag.ok {
+  background: var(--ok-wash);
+  color: var(--ok);
+}
+.tag.off {
+  background: var(--alert-wash);
+  color: var(--alert);
+}
+
+/* ============================================================
+   États
+   ============================================================ */
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 44px 24px;
+  text-align: center;
+}
+.empty h2 {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0 0 7px;
+}
+.empty p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 18px;
+  max-width: 44ch;
+  margin-inline: auto;
+}
+
+.notice {
+  padding: 11px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  margin-bottom: 18px;
+  background: var(--alert-wash);
+  border: 1px solid var(--alert-line);
+  color: var(--alert);
+}
+.notice ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ============================================================
+   Boîte de dialogue
+   ============================================================ */
+.veil {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 14, 13, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 40;
+  animation: fade 160ms ease;
+}
+
+.dialog {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 476px;
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: pop 200ms cubic-bezier(0.22, 0.68, 0.35, 1);
+}
+
+.dialog-head {
+  padding: 20px 22px 0;
+}
+.dialog-head h2 {
+  font-family: var(--display);
+  font-size: 23px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.dialog-head p {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.dialog-body {
+  padding: 20px 22px;
+}
+
+.dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 0 22px 20px;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+/* ============================================================
+   SIGNATURE — la révélation du secret
+   OpenIddict hache le secret : c'est la seule fois qu'il est
+   lisible. L'interface doit rendre ce moment impossible à manquer.
+   ============================================================ */
+.reveal {
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.reveal-band {
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 11px 18px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.reveal-body {
+  padding: 20px 18px 18px;
+}
+
+.reveal-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 9px;
+}
+
+.secret {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 13px 15px;
+}
+
+.secret code {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  word-break: break-all;
+  flex: 1;
+  min-width: 0;
+  user-select: all;
+}
+
+.reveal-note {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin: 14px 0 0;
+  line-height: 1.6;
+}
+
+.reveal-pairs {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px 16px;
+  font-size: 12.5px;
+}
+.reveal-pairs dt {
+  color: var(--muted);
+}
+.reveal-pairs dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/* ============================================================
+   Écran de session absente
+   ============================================================ */
+.gate {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+}
+.gate-inner {
+  max-width: 340px;
+  text-align: center;
+}
+.gate-inner h1 {
+  font-family: var(--display);
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0 0 9px;
+}
+.gate-inner p {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   Adaptation
+   ============================================================ */
+@media (max-width: 760px) {
+  .shell {
+    flex-direction: column;
+  }
+  .side {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    border-right: none;
+    border-bottom: 1px solid var(--line-soft);
+    padding: 12px 16px;
+    overflow-x: auto;
+  }
+  .nav {
+    flex-direction: row;
+  }
+  .side-foot {
+    margin-top: 0;
+    margin-left: auto;
+    border-top: none;
+    padding: 0;
+    flex-direction: row;
+    align-items: center;
+  }
+  .who {
+    display: none;
+  }
+  .top,
+  .body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .row {
+    flex-direction: column;
+  }
+  .row-actions {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* ============================================================
+   À AJOUTER À LA FIN DE src/styles.css
+   (avant le bloc @media, pour rester lisible)
+   ============================================================ */
+
+/* ---------- Bandeau de chiffres ---------- */
+.stats {
+  display: flex;
+  gap: 28px;
+  padding: 15px 18px;
+  margin-bottom: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* ---------- Barre d'outils ---------- */
+.toolbar {
+  display: flex;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+.toolbar input {
+  flex: 1;
+}
+
+/* ---------- Étiquettes en ligne ---------- */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ---------- Pagination ---------- */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.pager-label {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* ---------- Plage de dates (Du ... au ...) ---------- */
+.date-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.date-field {
+  flex: 1;
+  min-width: 0;
+}
+.date-field-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.date-range-arrow {
+  color: var(--muted);
+  font-size: 14px;
+  padding-bottom: 10px;
+  flex-shrink: 0;
+}
+
+/* ---------- Menu d'actions (bouton + panneau déroulant) ---------- */
+.menu {
+  position: relative;
+}
+
+.menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.menu-btn svg {
+  transition: transform 140ms ease;
+}
+.menu-btn[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 184px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(6, 14, 13, 0.18), 0 2px 6px rgba(6, 14, 13, 0.09);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 30;
+  animation: pop 140ms cubic-bezier(0.22, 0.68, 0.35, 1);
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+.menu-item:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+}
+.menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.menu-item.danger {
+  color: var(--alert);
+}
+.menu-item.danger:hover:not(:disabled) {
+  background: var(--alert-wash);
+}
+
+.menu-sep {
+  height: 1px;
+  background: var(--line-soft);
+  margin: 5px 2px;
+}
+
+/* ---------- Adaptation ---------- */
+@media (max-width: 760px) {
+  .stats {
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .toolbar {
+    flex-direction: column;
+  }
+}

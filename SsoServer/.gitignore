@@ -1,0 +1,18 @@
+## .NET
+bin/
+obj/
+
+## Visual Studio
+.vs/
+*.user
+
+## Rider / ReSharper
+.idea/
+*.DotSettings.user
+
+## VS Code
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db
