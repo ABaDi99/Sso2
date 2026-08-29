@@ -254,6 +254,16 @@ public static class UserEndpoints
             if (user is null)
                 return Results.NotFound(new RefusalDto($"Aucun compte avec l'identifiant {id}."));
 
+            // FindByClientIdAsync/FindByNameAsync lèvent une ArgumentNullException
+            // sur une valeur manquante plutôt que de renvoyer null : sans ce
+            // contrôle, un corps de requête incomplet fait planter l'appel en
+            // 500 avec la trace complète au lieu d'un refus propre.
+            if (string.IsNullOrWhiteSpace(request.ClientId))
+                return Results.BadRequest(new RefusalDto("Le client_id est obligatoire."));
+
+            if (string.IsNullOrWhiteSpace(request.RoleName))
+                return Results.BadRequest(new RefusalDto("Le nom du rôle est obligatoire."));
+
             var app = await manager.FindByClientIdAsync(request.ClientId);
 
             if (app is null)
