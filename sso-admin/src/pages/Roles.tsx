@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { api, NotAuthenticated, goToLogin, type Role } from "../api";
+import { api, type Role } from "../api";
+import { useApiAction } from "../hooks/useApiAction";
+import { usePagination } from "../hooks/usePagination";
+import { Pager } from "../components/Pager";
 
 const PAGE_SIZE = 5;
 
@@ -8,16 +11,11 @@ export default function RolesPage() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [page, setPage] = useState(1);
+  const { run } = useApiAction(setError);
 
   async function load() {
-    try {
-      setRoles(await api.roles.list());
-      setError(null);
-    } catch (e) {
-      if (e instanceof NotAuthenticated) return goToLogin();
-      setError(e instanceof Error ? e.message : "Chargement impossible.");
-    }
+    const result = await run(() => api.roles.list(), "Chargement impossible.");
+    if (result.success) setRoles(result.value);
   }
 
   useEffect(() => {
@@ -27,33 +25,30 @@ export default function RolesPage() {
   async function create() {
     if (!name.trim()) return;
     setBusy(true);
-    try {
-      await api.roles.create(name.trim());
+    const result = await run(
+      () => api.roles.create(name.trim()),
+      "Création impossible."
+    );
+    setBusy(false);
+    if (result.success) {
       setName("");
-      setError(null);
       load();
-    } catch (e) {
-      if (e instanceof NotAuthenticated) return goToLogin();
-      setError(e instanceof Error ? e.message : "Création impossible.");
-    } finally {
-      setBusy(false);
     }
   }
 
   async function remove(role: Role) {
     if (!window.confirm(`Supprimer le rôle « ${role.name} » ?`)) return;
-    try {
-      await api.roles.remove(role.name);
-      setError(null);
-      load();
-    } catch (e) {
-      if (e instanceof NotAuthenticated) return goToLogin();
-      setError(e instanceof Error ? e.message : "Suppression impossible.");
-    }
+    const result = await run(
+      () => api.roles.remove(role.name),
+      "Suppression impossible."
+    );
+    if (result.success) load();
   }
 
-  const pageCount = Math.max(1, Math.ceil((roles?.length ?? 0) / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
+  const { page, setPage, pageCount, pageItems } = usePagination(
+    roles ?? [],
+    PAGE_SIZE
+  );
 
   return (
     <>
@@ -101,9 +96,7 @@ export default function RolesPage() {
         ) : (
           <>
           <div className="rows">
-            {roles
-              .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-              .map((r) => (
+            {pageItems.map((r) => (
               <article className="row" key={r.id}>
                 <div className="row-main">
                   <div className="row-title">{r.name}</div>
@@ -130,27 +123,7 @@ export default function RolesPage() {
             ))}
           </div>
 
-          {roles.length > PAGE_SIZE && (
-            <div className="pager">
-              <button
-                className="btn small"
-                disabled={currentPage <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Précédent
-              </button>
-              <span className="pager-label">
-                page {currentPage} sur {pageCount}
-              </span>
-              <button
-                className="btn small"
-                disabled={currentPage >= pageCount}
-                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-              >
-                Suivant
-              </button>
-            </div>
-          )}
+          <Pager page={page} pageCount={pageCount} onChange={setPage} />
           </>
         )}
       </div>

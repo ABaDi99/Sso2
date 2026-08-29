@@ -34,6 +34,7 @@ public static class AccountStatusChecker
         var now = DateTimeOffset.UtcNow;
 
         var activeSuspension = await db.UserSuspensions
+            .AsNoTracking()
             .Where(s => s.UserId == user.Id && s.DateDebut <= now && now <= s.DateFin)
             .OrderByDescending(s => s.DateFin)
             .FirstOrDefaultAsync();

@@ -45,7 +45,7 @@ public static class ClientEndpoints
             var application = await manager.FindByIdAsync(id);
 
             return application is null
-                ? Results.NotFound(new { error = $"Aucune application avec l'identifiant {id}." })
+                ? Results.NotFound(new RefusalDto($"Aucune application avec l'identifiant {id}."))
                 : Results.Ok(await ToDto(manager, application));
         });
 
@@ -61,10 +61,8 @@ public static class ClientEndpoints
                 return Results.BadRequest(new { errors = problems });
 
             if (await manager.FindByClientIdAsync(request.ClientId) is not null)
-                return Results.Conflict(new
-                {
-                    error = $"Le client_id « {request.ClientId} » est déjà pris."
-                });
+                return Results.Conflict(new RefusalDto(
+                    $"Le client_id « {request.ClientId} » est déjà pris."));
 
             var confidential = request.ClientType.Equals(
                 ClientTypes.Confidential, StringComparison.OrdinalIgnoreCase);
@@ -112,7 +110,7 @@ public static class ClientEndpoints
             var application = await manager.FindByIdAsync(id);
 
             if (application is null)
-                return Results.NotFound(new { error = $"Aucune application avec l'identifiant {id}." });
+                return Results.NotFound(new RefusalDto($"Aucune application avec l'identifiant {id}."));
 
             var problems = Validate(null, null, request.RedirectUris, request.PostLogoutRedirectUris);
 
@@ -150,28 +148,32 @@ public static class ClientEndpoints
             string id,
             IOpenIddictApplicationManager manager,
             ApplicationDbContext db,
-            UserManager<ApplicationUser> users) =>
+            UserManager<ApplicationUser> users,
+            CancellationToken ct) =>
         {
             var application = await manager.FindByIdAsync(id);
 
             if (application is null)
-                return Results.NotFound(new { error = $"Aucune application avec l'identifiant {id}." });
+                return Results.NotFound(new RefusalDto($"Aucune application avec l'identifiant {id}."));
 
             var clientId = await manager.GetClientIdAsync(application);
 
             var assignments = await db.UserApplicationRoles
+                .AsNoTracking()
                 .Where(x => x.ClientId == clientId)
                 .Include(x => x.Role)
-                .ToListAsync();
+                .ToListAsync(ct);
 
-            var result = new List<ClientRoleAssignmentDto>();
+            // Un seul aller-retour pour tous les comptes concernés, plutôt
+            // qu'un par assignation.
+            var userIds = assignments.Select(a => a.UserId).Distinct().ToList();
+            var emailsById = await users.Users
+                .AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.Email, ct);
 
-            foreach (var a in assignments)
-            {
-                var user = await users.FindByIdAsync(a.UserId);
-                result.Add(new ClientRoleAssignmentDto(
-                    a.Id, a.UserId, user?.Email ?? a.UserId, a.Role.Name!));
-            }
+            var result = assignments.Select(a => new ClientRoleAssignmentDto(
+                a.Id, a.UserId, emailsById.GetValueOrDefault(a.UserId) ?? a.UserId, a.Role.Name!));
 
             return Results.Ok(result.OrderBy(x => x.UserEmail).ThenBy(x => x.RoleName));
         });
@@ -184,15 +186,13 @@ public static class ClientEndpoints
             var application = await manager.FindByIdAsync(id);
 
             if (application is null)
-                return Results.NotFound(new { error = $"Aucune application avec l'identifiant {id}." });
+                return Results.NotFound(new RefusalDto($"Aucune application avec l'identifiant {id}."));
 
             var type = await manager.GetClientTypeAsync(application);
 
             if (!string.Equals(type, ClientTypes.Confidential, StringComparison.OrdinalIgnoreCase))
-                return Results.BadRequest(new
-                {
-                    error = "Un client public n'a pas de secret à régénérer."
-                });
+                return Results.BadRequest(new RefusalDto(
+                    "Un client public n'a pas de secret à régénérer."));
 
             var descriptor = new OpenIddictApplicationDescriptor();
             await manager.PopulateAsync(descriptor, application);
@@ -217,7 +217,7 @@ public static class ClientEndpoints
             var application = await manager.FindByIdAsync(id);
 
             if (application is null)
-                return Results.NotFound(new { error = $"Aucune application avec l'identifiant {id}." });
+                return Results.NotFound(new RefusalDto($"Aucune application avec l'identifiant {id}."));
 
             await manager.DeleteAsync(application);
 
@@ -271,14 +271,14 @@ public static class ClientEndpoints
         descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
         descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
 
-        foreach (var scope in scopes ?? ["openid", "profile", "email"])
+        foreach (var scope in scopes ?? [Scopes.OpenId, Scopes.Profile, Scopes.Email])
         {
             // openid est implicite, offline_access se traduit par le
             // grant refresh_token : ni l'un ni l'autre n'est une permission de scope.
-            if (scope.Equals("openid", StringComparison.OrdinalIgnoreCase))
+            if (scope.Equals(Scopes.OpenId, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            if (scope.Equals("offline_access", StringComparison.OrdinalIgnoreCase))
+            if (scope.Equals(Scopes.OfflineAccess, StringComparison.OrdinalIgnoreCase))
             {
                 descriptor.Permissions.Add(Permissions.GrantTypes.RefreshToken);
                 continue;

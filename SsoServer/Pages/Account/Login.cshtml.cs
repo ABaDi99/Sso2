@@ -14,15 +14,21 @@ public class LoginModel : PageModel
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
+    private readonly AccountLoginService _loginService;
+    private readonly ILogger<LoginModel> _logger;
 
     public LoginModel(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        AccountLoginService loginService,
+        ILogger<LoginModel> logger)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _db = db;
+        _loginService = loginService;
+        _logger = logger;
     }
 
     [BindProperty]
@@ -39,32 +45,13 @@ public class LoginModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
     {
-        // La suspension n'est jamais posée dans LockoutEnd (voir
-        // AccountStatusChecker) : elle doit être vérifiée explicitement,
-        // avant même de tenter le mot de passe.
-        var candidate = await _userManager.FindByEmailAsync(Email);
-        if (candidate is not null)
-        {
-            var status = await AccountStatusChecker.CheckAsync(_db, candidate);
-            if (status.IsBlocked)
-            {
-                ErrorMessage = status.Message;
-                return Page();
-            }
-        }
+        var login = await _loginService.AttemptLoginAsync(
+            _signInManager, _userManager, _db, Email, Password);
 
-        var result = await _signInManager.PasswordSignInAsync(
-            Email, Password, isPersistent: true, lockoutOnFailure: true);
-
-        if (result.IsLockedOut)
+        if (login.Outcome != LoginOutcome.Success)
         {
-            ErrorMessage = "Ce compte a été désactivé.";
-            return Page();
-        }
-
-        if (!result.Succeeded)
-        {
-            ErrorMessage = "Email ou mot de passe incorrect.";
+            _logger.LogWarning("Connexion refusée pour {Email} : {Outcome}.", Email, login.Outcome);
+            ErrorMessage = login.Message;
             return Page();
         }
 

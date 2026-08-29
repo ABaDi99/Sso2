@@ -22,7 +22,8 @@ public static class AuthorizationEndpoints
         app.MapMethods("/connect/authorize", new[] { "GET", "POST" }, async (
             HttpContext context,
             UserManager<ApplicationUser> userManager,
-            ApplicationDbContext db) =>
+            ApplicationDbContext db,
+            ILogger<Program> logger) =>
         {
             var request = context.Features.Get<OpenIddictServerAspNetCoreFeature>()?.Transaction?.Request
                 ?? throw new InvalidOperationException("Requête OpenIddict introuvable.");
@@ -61,6 +62,10 @@ public static class AuthorizationEndpoints
             var status = await AccountStatusChecker.CheckAsync(db, user);
             if (status.IsBlocked)
             {
+                logger.LogWarning(
+                    "Autorisation refusée pour {Email} : compte bloqué ({Reason}).",
+                    user.Email, status.Reason);
+
                 await context.SignOutAsync(IdentityConstants.ApplicationScheme);
 
                 var parameters = context.Request.Query
@@ -76,11 +81,7 @@ public static class AuthorizationEndpoints
             // Rôles globaux + rôles applicatifs assignés spécifiquement pour
             // le client qui demande ce jeton (union, jamais un remplacement :
             // un rôle global comme Admin doit continuer à fonctionner partout).
-            var globalRoles = await userManager.GetRolesAsync(user);
-            var appRoles = await db.UserApplicationRoles
-                .Where(x => x.UserId == user.Id && x.ClientId == request.ClientId)
-                .Select(x => x.Role.Name!)
-                .ToListAsync();
+            var effectiveRoles = await RoleResolver.GetEffectiveRolesAsync(userManager, db, user, request.ClientId);
 
             // Liste blanche par application : avoir un compte SSO valide ne
             // suffit pas à entrer dans une application donnée, il faut au
@@ -91,8 +92,12 @@ public static class AuthorizationEndpoints
             // défini. Réponse standard OAuth2 (RFC 6749 §4.1.2.1) : redirige
             // vers le redirect_uri du client avec error=access_denied,
             // plutôt qu'émettre un jeton vide de sens.
-            if (!globalRoles.Contains(AppRoles.Admin) && appRoles.Count == 0)
+            if (!effectiveRoles.GlobalRoles.Contains(AppRoles.Admin) && effectiveRoles.AppRoles.Count == 0)
             {
+                logger.LogWarning(
+                    "Autorisation refusée pour {Email} : aucun rôle pour le client {ClientId}.",
+                    user.Email, request.ClientId);
+
                 // Ferme aussi la session Identity : sinon, cliquer à nouveau
                 // sur "Se connecter" retombe directement sur ce même refus
                 // (le cookie est encore valide, le formulaire de login ne
@@ -119,7 +124,7 @@ public static class AuthorizationEndpoints
                     .SetClaim(Claims.Email, await userManager.GetEmailAsync(user))
                     .SetClaim(Claims.Name, await userManager.GetUserNameAsync(user));
 
-            foreach (var role in globalRoles.Concat(appRoles).Distinct())
+            foreach (var role in effectiveRoles.All)
                 identity.AddClaim(Claims.Role, role);
 
             identity.SetScopes(request.GetScopes());
@@ -143,7 +148,8 @@ public static class AuthorizationEndpoints
         app.MapPost("/connect/token", async (
             HttpContext context,
             UserManager<ApplicationUser> userManager,
-            ApplicationDbContext db) =>
+            ApplicationDbContext db,
+            ILogger<Program> logger) =>
         {
             var request = context.Features.Get<OpenIddictServerAspNetCoreFeature>()?.Transaction?.Request
                 ?? throw new InvalidOperationException("Requête OpenIddict introuvable.");
@@ -185,6 +191,10 @@ public static class AuthorizationEndpoints
             // quel statut non-2xx) et bascule en ReauthRequired.
             var status = await AccountStatusChecker.CheckAsync(db, user);
             if (status.IsBlocked)
+            {
+                logger.LogWarning(
+                    "Renouvellement de jeton refusé pour {Email} : compte bloqué ({Reason}).",
+                    user.Email, status.Reason);
                 return Results.Forbid(
                     authenticationSchemes: new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme },
                     properties: new AuthenticationProperties(new Dictionary<string, string?>
@@ -192,6 +202,7 @@ public static class AuthorizationEndpoints
                         [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
                         [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "Ce compte n'est plus autorisé à se connecter."
                     }));
+            }
 
             return Results.SignIn(
                 result.Principal,
@@ -224,21 +235,14 @@ public static class AuthorizationEndpoints
             // interroge en continu (via /auth/me côté ClientApi) doit rester
             // cohérente avec ce qui a été négocié à la connexion.
             var clientId = result.Principal.GetPresenters().FirstOrDefault();
-
-            var globalRoles = await userManager.GetRolesAsync(user);
-            var appRoles = clientId is null
-                ? new List<string>()
-                : await db.UserApplicationRoles
-                    .Where(x => x.UserId == user.Id && x.ClientId == clientId)
-                    .Select(x => x.Role.Name!)
-                    .ToListAsync();
+            var effectiveRoles = await RoleResolver.GetEffectiveRolesAsync(userManager, db, user, clientId);
 
             return Results.Ok(new Dictionary<string, object>
             {
                 [Claims.Subject] = user.Id,
                 [Claims.Email] = user.Email!,
                 [Claims.Name] = user.UserName!,
-                [Claims.Role] = globalRoles.Concat(appRoles).Distinct()
+                [Claims.Role] = effectiveRoles.All
             });
         });
         // Pas de .RequireAuthorization() ici : il utiliserait le schéma

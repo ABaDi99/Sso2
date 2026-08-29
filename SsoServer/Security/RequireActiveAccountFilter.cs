@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using SsoServer.Data;
+using SsoServer.DTOs;
 using SsoServer.Entities.Identity;
 using System.Security.Claims;
 
@@ -37,9 +38,14 @@ public sealed class RequireActiveAccountFilter : IEndpointFilter
 
             if (status.IsBlocked)
             {
+                var logger = httpContext.RequestServices.GetRequiredService<ILogger<RequireActiveAccountFilter>>();
+                logger.LogWarning(
+                    "Accès admin refusé pour {Email} : compte bloqué ({Reason}).",
+                    user?.Email ?? userId, status.Reason);
+
                 await httpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
                 return Results.Json(
-                    new { error = status.Message },
+                    new RefusalDto(status.Message ?? "Ce compte est bloqué."),
                     statusCode: StatusCodes.Status403Forbidden);
             }
         }

@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
 using SsoServer.Data;
 using SsoServer.Endpoints;
 using SsoServer.Entities.Identity;
+using SsoServer.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.UseOpenIddict();
 });
+
+// Sans état propre (délègue tout à SignInManager/UserManager/DbContext,
+// eux-mêmes scoped) : peut être singleton ou scoped indifféremment, mais
+// scoped reste cohérent avec le cycle de vie de ses dépendances.
+builder.Services.AddScoped<AccountLoginService>();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -104,7 +111,12 @@ builder.Services.AddOpenIddict()
                .AllowRefreshTokenFlow()
                .RequireProofKeyForCodeExchange();
 
-        options.RegisterScopes("openid", "profile", "email", "roles", "offline_access");
+        options.RegisterScopes(
+            OpenIddictConstants.Scopes.OpenId,
+            OpenIddictConstants.Scopes.Profile,
+            OpenIddictConstants.Scopes.Email,
+            "roles",
+            OpenIddictConstants.Scopes.OfflineAccess);
         options.AddDevelopmentEncryptionCertificate()
                .AddDevelopmentSigningCertificate();
 

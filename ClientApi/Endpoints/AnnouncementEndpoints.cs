@@ -1,3 +1,4 @@
+using ClientApi.Security;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 
@@ -61,7 +62,7 @@ public static class AnnouncementEndpoints
                 return Results.Created($"/announcements/{announcement.Id}", announcement);
             }
         })
-        .RequireAuthorization(policy => policy.RequireRole("Admin"));
+        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
 
         // ===== Modifier =====
         group.MapPut("/{id:int}", (int id, AnnouncementRequest request) =>
@@ -77,7 +78,7 @@ public static class AnnouncementEndpoints
                 return Results.Ok(updated);
             }
         })
-        .RequireAuthorization(policy => policy.RequireRole("Admin"));
+        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
 
         // ===== Supprimer =====
         group.MapDelete("/{id:int}", (int id) =>
@@ -88,6 +89,6 @@ public static class AnnouncementEndpoints
                 return removed > 0 ? Results.NoContent() : Results.NotFound();
             }
         })
-        .RequireAuthorization(policy => policy.RequireRole("Admin"));
+        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
     }
 }
