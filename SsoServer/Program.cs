@@ -34,6 +34,34 @@ builder.Services.ConfigureApplicationCookie(options =>
 
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
+
+    // Le comportement par défaut du cookie Identity — rediriger vers la
+    // page de login HTML — a du sens pour /Account/*, mais casse une API
+    // JSON : côté sso-admin, un fetch() suit la redirection en silence et
+    // se retrouve avec du HTML au lieu d'un vrai 401/403, donc aucune
+    // erreur n'est détectée. On garde le comportement HTML partout ailleurs,
+    // et on répond en JSON pour /admin/api/*.
+    var defaultRedirectToLogin = options.Events.OnRedirectToLogin;
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/admin/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        return defaultRedirectToLogin(context);
+    };
+
+    var defaultRedirectToAccessDenied = options.Events.OnRedirectToAccessDenied;
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/admin/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+        return defaultRedirectToAccessDenied(context);
+    };
 });
 
 builder.Services.AddCors(options =>

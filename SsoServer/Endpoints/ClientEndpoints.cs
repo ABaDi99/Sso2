@@ -24,6 +24,7 @@ public static class ClientEndpoints
     {
         var group = app.MapGroup("/admin/api/clients")
                        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin))
+                       .AddEndpointFilter<RequireActiveAccountFilter>()
                        .AddEndpointFilter<RequireAdminHeaderFilter>();
 
 

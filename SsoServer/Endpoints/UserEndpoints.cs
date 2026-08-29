@@ -34,6 +34,7 @@ public static class UserEndpoints
     {
         var group = app.MapGroup("/admin/api/users")
                        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin))
+                       .AddEndpointFilter<RequireActiveAccountFilter>()
                        .AddEndpointFilter<RequireAdminHeaderFilter>();
 
         // ===== Lister =====
@@ -544,6 +545,7 @@ public static class UserEndpoints
     {
         var group = app.MapGroup("/admin/api/roles")
                        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin))
+                       .AddEndpointFilter<RequireActiveAccountFilter>()
                        .AddEndpointFilter<RequireAdminHeaderFilter>();
 
         group.MapGet("/", async (
