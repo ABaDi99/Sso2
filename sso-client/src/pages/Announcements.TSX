@@ -6,7 +6,7 @@ import {
   createAnnouncement,
   deleteAnnouncement,
   getAnnouncements,
-  isAdmin,
+  hasPermission,
   updateAnnouncement,
   ForbiddenError,
   type Announcement,
@@ -50,7 +50,9 @@ export default function Announcements() {
       </p>
     );
 
-  const admin = isAdmin(user);
+  const canCreate = hasPermission(user, "announcements.create");
+  const canEdit = hasPermission(user, "announcements.edit");
+  const canDelete = hasPermission(user, "announcements.delete");
 
   function openCreateForm() {
     setEditing(null);
@@ -101,7 +103,7 @@ export default function Announcements() {
           </p>
         </div>
 
-        {admin && (
+        {canCreate && (
           <Button className="w-full sm:w-auto" onClick={openCreateForm}>
             Nouvelle annonce
           </Button>
@@ -137,22 +139,26 @@ export default function Announcements() {
                   </p>
                 </div>
 
-                {admin && (
+                {(canEdit || canDelete) && (
                   <div className="flex shrink-0 gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => openEditForm(item)}
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      <Trash2 />
-                    </Button>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => openEditForm(item)}
+                      >
+                        <Pencil />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>
