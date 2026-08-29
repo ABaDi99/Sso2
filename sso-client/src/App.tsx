@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Announcements from "./pages/Announcements";
 import RolesPermissions from "./pages/RolesPermissions";
+import AccessDenied from "./pages/AccessDenied";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/announcements" element={<Announcements />} />
         <Route path="/roles" element={<RolesPermissions />} />
+        <Route path="/connexion-refusee" element={<AccessDenied />} />
       </Routes>
     </BrowserRouter>
   );

@@ -75,6 +75,21 @@ public static class AuthEndpoints
             [FromQuery(Name = "error")] string? oauthError,
             [FromQuery(Name = "error_description")] string? oauthErrorDescription) =>
         {
+            // /auth/callback est atteint par une vraie navigation du
+            // navigateur (redirection depuis SsoServer), pas par un appel
+            // fetch/XHR côté sso-client : une réponse JSON ou texte brute
+            // s'afficherait telle quelle à l'écran plutôt que d'être
+            // interprétée par l'application. Toute sortie en erreur doit
+            // donc rediriger vers une page de l'application, avec de quoi
+            // afficher un message compréhensible.
+            IResult RedirectToError(string reason, string? detail = null)
+            {
+                var url = $"{config["Frontend:Url"]}/connexion-refusee?reason={Uri.EscapeDataString(reason)}";
+                if (!string.IsNullOrEmpty(detail))
+                    url += $"&detail={Uri.EscapeDataString(detail)}";
+                return Results.Redirect(url);
+            }
+
             // SsoServer refuse l'autorisation (ex: aucun rôle assigné pour
             // cette application) : réponse standard OAuth2, pas un jeton.
             if (!string.IsNullOrEmpty(oauthError))
@@ -82,21 +97,19 @@ public static class AuthEndpoints
                 logger.LogWarning(
                     "Autorisation refusée par SsoServer : {Error} — {Description}",
                     oauthError, oauthErrorDescription);
-                return Results.Json(
-                    new { error = "Accès refusé.", detail = oauthErrorDescription },
-                    statusCode: StatusCodes.Status403Forbidden);
+                return RedirectToError("access_denied", oauthErrorDescription);
             }
 
             if (string.IsNullOrEmpty(code))
-                return Results.BadRequest("Code manquant.");
+                return RedirectToError("missing_code");
 
             var savedState = context.Request.Cookies["oauth_state"];
             if (string.IsNullOrEmpty(savedState) || savedState != state)
-                return Results.BadRequest("State invalide.");
+                return RedirectToError("invalid_state");
 
             var verifier = context.Request.Cookies["pkce_verifier"];
             if (string.IsNullOrEmpty(verifier))
-                return Results.BadRequest("Verifier introuvable.");
+                return RedirectToError("missing_verifier");
 
             // Échange serveur-à-serveur
             var client = httpClientFactory.CreateClient();
@@ -116,12 +129,13 @@ public static class AuthEndpoints
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                return Results.BadRequest($"Échec de l'échange : {error}");
+                logger.LogWarning("Échec de l'échange de code sur /auth/callback : {Error}", error);
+                return RedirectToError("exchange_failed");
             }
 
             var tokens = await response.Content.ReadFromJsonAsync<TokenResponse>();
             if (tokens is null)
-                return Results.BadRequest("Réponse invalide.");
+                return RedirectToError("invalid_response");
 
             // On valide l'id_token : signature, émetteur, audience et durée de
             // vie, avec les clés publiées par SsoServer sur son endpoint JWKS.
@@ -150,12 +164,12 @@ public static class AuthEndpoints
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "id_token invalide reçu sur /auth/callback.");
-                return Results.BadRequest("Authentification invalide.");
+                return RedirectToError("invalid_token");
             }
 
             var subject = idTokenPrincipal.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
             if (string.IsNullOrEmpty(subject))
-                return Results.BadRequest("id_token invalide : claim 'sub' manquant.");
+                return RedirectToError("invalid_token");
 
             if (string.IsNullOrEmpty(tokens.RefreshToken))
                 logger.LogWarning("Aucun refresh_token reçu sur /auth/callback (scope offline_access absent ou refusé) : le renouvellement sera impossible pour cette session.");
