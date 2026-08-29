@@ -41,6 +41,10 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<TokenStore>();
 builder.Services.AddSingleton<TokenRefreshService>();
 
+// Ce que chaque rôle SSO autorise à faire dans *cette* application —
+// voir RolePermissionStore.
+builder.Services.AddSingleton<RolePermissionStore>();
+
 // Récupère et met en cache le document de découverte OIDC de SsoServer
 // (issuer + clés de signature JWKS), pour valider les id_token reçus.
 // Singleton : le ConfigurationManager rafraîchit lui-même son cache selon
@@ -90,5 +94,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapAnnouncementEndpoints();
+app.MapRolePermissionEndpoints();
 
 app.Run();

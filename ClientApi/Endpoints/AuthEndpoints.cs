@@ -204,18 +204,24 @@ public static class AuthEndpoints
             IConfiguration config,
             IHttpClientFactory httpClientFactory,
             TokenRefreshService tokenRefresh,
+            RolePermissionStore rolePermissions,
             ILogger<Program> logger) =>
         {
             if (user.Identity?.IsAuthenticated != true)
                 return Results.Unauthorized();
 
-            IResult FromCookieClaims() => Results.Ok(new
+            IResult FromCookieClaims()
             {
-                id = user.FindFirstValue(ClaimTypes.NameIdentifier),
-                email = user.FindFirstValue(ClaimTypes.Email),
-                name = user.FindFirstValue(ClaimTypes.Name),
-                roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value)
-            });
+                var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
+                return Results.Ok(new
+                {
+                    id = user.FindFirstValue(ClaimTypes.NameIdentifier),
+                    email = user.FindFirstValue(ClaimTypes.Email),
+                    name = user.FindFirstValue(ClaimTypes.Name),
+                    roles,
+                    permissions = rolePermissions.ResolvePermissions(roles)
+                });
+            }
 
             // Le refresh_token est mort (révoqué, expiré, absent) : la session
             // OAuth est réellement terminée. On ferme aussi la session locale
@@ -270,12 +276,14 @@ public static class AuthEndpoints
                 if (info is null)
                     return FromCookieClaims();
 
+                var liveRoles = info.Role ?? [];
                 return Results.Ok(new
                 {
                     id = info.Sub,
                     email = info.Email,
                     name = info.Name,
-                    roles = info.Role ?? Array.Empty<string>()
+                    roles = liveRoles,
+                    permissions = rolePermissions.ResolvePermissions(liveRoles)
                 });
             }
             catch (Exception ex)

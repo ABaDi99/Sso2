@@ -1,5 +1,4 @@
-using ClientApi.Security;
-using Microsoft.AspNetCore.Authentication;
+using ClientApi.Services;
 using System.Security.Claims;
 
 namespace ClientApi.Endpoints;
@@ -23,32 +22,50 @@ public static class AnnouncementEndpoints
             "admin@entreprise.com", DateTime.UtcNow.AddHours(-5)),
     ];
 
+    // Ce que peut faire l'appelant sur les annonces, d'après les rôles SSO
+    // de sa session courante et le mapping rôle → permissions défini pour
+    // CETTE application (RolePermissionStore) — pas un simple RequireRole,
+    // pour que la démonstration de permissions fines ait un effet réel côté
+    // serveur, pas seulement sur l'affichage des boutons.
+    private static bool HasPermission(ClaimsPrincipal user, RolePermissionStore store, string code)
+    {
+        var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value);
+        return store.ResolvePermissions(roles).Contains(code);
+    }
+
     public static void MapAnnouncementEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/announcements");
+        var group = app.MapGroup("/announcements").RequireAuthorization();
 
         // ===== Lister =====
-        group.MapGet("/", () =>
+        group.MapGet("/", (ClaimsPrincipal user, RolePermissionStore store) =>
         {
+            if (!HasPermission(user, store, "announcements.view"))
+                return Results.Forbid();
+
             lock (Lock)
                 return Results.Ok(Store.OrderByDescending(a => a.CreatedAt).ToList());
-        })
-        .RequireAuthorization();
+        });
 
         // ===== Détail =====
-        group.MapGet("/{id:int}", (int id) =>
+        group.MapGet("/{id:int}", (int id, ClaimsPrincipal user, RolePermissionStore store) =>
         {
+            if (!HasPermission(user, store, "announcements.view"))
+                return Results.Forbid();
+
             lock (Lock)
             {
                 var found = Store.FirstOrDefault(a => a.Id == id);
                 return found is null ? Results.NotFound() : Results.Ok(found);
             }
-        })
-        .RequireAuthorization();
+        });
 
         // ===== Créer =====
-        group.MapPost("/", (AnnouncementRequest request, ClaimsPrincipal user) =>
+        group.MapPost("/", (AnnouncementRequest request, ClaimsPrincipal user, RolePermissionStore store) =>
         {
+            if (!HasPermission(user, store, "announcements.create"))
+                return Results.Forbid();
+
             lock (Lock)
             {
                 var announcement = new Announcement(
@@ -61,12 +78,14 @@ public static class AnnouncementEndpoints
                 Store.Add(announcement);
                 return Results.Created($"/announcements/{announcement.Id}", announcement);
             }
-        })
-        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
+        });
 
         // ===== Modifier =====
-        group.MapPut("/{id:int}", (int id, AnnouncementRequest request) =>
+        group.MapPut("/{id:int}", (int id, AnnouncementRequest request, ClaimsPrincipal user, RolePermissionStore store) =>
         {
+            if (!HasPermission(user, store, "announcements.edit"))
+                return Results.Forbid();
+
             lock (Lock)
             {
                 var index = Store.FindIndex(a => a.Id == id);
@@ -77,18 +96,19 @@ public static class AnnouncementEndpoints
                 Store[index] = updated;
                 return Results.Ok(updated);
             }
-        })
-        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
+        });
 
         // ===== Supprimer =====
-        group.MapDelete("/{id:int}", (int id) =>
+        group.MapDelete("/{id:int}", (int id, ClaimsPrincipal user, RolePermissionStore store) =>
         {
+            if (!HasPermission(user, store, "announcements.delete"))
+                return Results.Forbid();
+
             lock (Lock)
             {
                 var removed = Store.RemoveAll(a => a.Id == id);
                 return removed > 0 ? Results.NoContent() : Results.NotFound();
             }
-        })
-        .RequireAuthorization(policy => policy.RequireRole(AppRoles.Admin));
+        });
     }
 }

@@ -12,10 +12,16 @@ export interface User {
   email: string;
   name: string;
   roles: string[];
+  permissions: string[];
 }
 
 export function isAdmin(user: User | null): boolean {
   return user?.roles?.includes("Admin") ?? false;
+}
+
+/** Une permission accordée par au moins un des rôles courants de l'utilisateur. */
+export function hasPermission(user: User | null, code: string): boolean {
+  return user?.permissions?.includes(code) ?? false;
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -123,6 +129,64 @@ export async function updateAnnouncement(
 export async function deleteAnnouncement(id: number): Promise<void> {
   try {
     await api.delete(`/announcements/${id}`);
+  } catch (error) {
+    throwIfForbidden(error);
+  }
+}
+
+/* ============================================================
+   Rôles & permissions — ce que chaque rôle SSO autorise à faire
+   dans CETTE application précise (défini ici, pas dans le SSO).
+   ============================================================ */
+
+export interface PermissionDefinition {
+  code: string;
+  label: string;
+}
+
+export interface RoleDefinition {
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
+export async function getPermissionCatalog(): Promise<PermissionDefinition[]> {
+  const response = await api.get<PermissionDefinition[]>("/roles/permissions-catalog");
+  return response.data;
+}
+
+export async function getRoleDefinitions(): Promise<RoleDefinition[]> {
+  const response = await api.get<RoleDefinition[]>("/roles");
+  return response.data;
+}
+
+export async function createRoleDefinition(
+  name: string,
+  description: string
+): Promise<RoleDefinition> {
+  try {
+    const response = await api.post<RoleDefinition>("/roles", { name, description });
+    return response.data;
+  } catch (error) {
+    throwIfForbidden(error);
+  }
+}
+
+export async function setRolePermissions(
+  name: string,
+  permissions: string[]
+): Promise<RoleDefinition> {
+  try {
+    const response = await api.put<RoleDefinition>(`/roles/${name}/permissions`, { permissions });
+    return response.data;
+  } catch (error) {
+    throwIfForbidden(error);
+  }
+}
+
+export async function deleteRoleDefinition(name: string): Promise<void> {
+  try {
+    await api.delete(`/roles/${name}`);
   } catch (error) {
     throwIfForbidden(error);
   }

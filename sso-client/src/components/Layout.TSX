@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { LogOut, Menu, PanelLeftClose } from "lucide-react";
-import { isAdmin, logout, type User } from "../api";
+import { hasPermission, isAdmin, logout, type User } from "../api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -81,6 +81,11 @@ export default function Layout({ user, children }: LayoutProps) {
             <NavLink to="/announcements" className={navLinkClass}>
               Annonces
             </NavLink>
+            {(isAdmin(user) || hasPermission(user, "roles.manage")) && (
+              <NavLink to="/roles" className={navLinkClass}>
+                Rôles &amp; permissions
+              </NavLink>
+            )}
           </nav>
 
           <div className="flex flex-col gap-3 border-t pt-4">
