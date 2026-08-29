@@ -203,7 +203,8 @@ public static class AuthorizationEndpoints
         // ===== /connect/userinfo =====
         app.MapGet("/connect/userinfo", async (
             HttpContext context,
-            UserManager<ApplicationUser> userManager) =>
+            UserManager<ApplicationUser> userManager,
+            ApplicationDbContext db) =>
         {
             var result = await context.AuthenticateAsync(
                 OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
@@ -216,12 +217,28 @@ public static class AuthorizationEndpoints
             if (user is null)
                 return Results.Unauthorized();
 
+            // Même calcul qu'à l'émission du jeton (/connect/authorize) : sans
+            // ça, un utilisateur dont le seul rôle est applicatif se voit
+            // renvoyer une liste de rôles vide ici, alors que son jeton en
+            // contenait un — la source d'information que l'app cliente
+            // interroge en continu (via /auth/me côté ClientApi) doit rester
+            // cohérente avec ce qui a été négocié à la connexion.
+            var clientId = result.Principal.GetPresenters().FirstOrDefault();
+
+            var globalRoles = await userManager.GetRolesAsync(user);
+            var appRoles = clientId is null
+                ? new List<string>()
+                : await db.UserApplicationRoles
+                    .Where(x => x.UserId == user.Id && x.ClientId == clientId)
+                    .Select(x => x.Role.Name!)
+                    .ToListAsync();
+
             return Results.Ok(new Dictionary<string, object>
             {
                 [Claims.Subject] = user.Id,
                 [Claims.Email] = user.Email!,
                 [Claims.Name] = user.UserName!,
-                [Claims.Role] = await userManager.GetRolesAsync(user)
+                [Claims.Role] = globalRoles.Concat(appRoles).Distinct()
             });
         });
         // Pas de .RequireAuthorization() ici : il utiliserait le schéma

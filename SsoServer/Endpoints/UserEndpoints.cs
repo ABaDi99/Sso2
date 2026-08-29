@@ -184,6 +184,7 @@ public static class UserEndpoints
             // Garde-fou : conserver au moins un administrateur actif.
             if (await users.IsInRoleAsync(user, AppRoles.Admin)
                 && !wanted.Contains(AppRoles.Admin, StringComparer.OrdinalIgnoreCase)
+                && await IsActiveAdmin(db, user)
                 && await CountActiveAdmins(users, db) <= 1)
             {
                 return Results.BadRequest(new RefusalDto(
@@ -338,7 +339,9 @@ public static class UserEndpoints
                 return Results.BadRequest(new RefusalDto(
                     "Vous ne pouvez pas désactiver votre propre compte."));
 
-            if (await users.IsInRoleAsync(user, AppRoles.Admin) && await CountActiveAdmins(users, db) <= 1)
+            if (await users.IsInRoleAsync(user, AppRoles.Admin)
+                && await IsActiveAdmin(db, user)
+                && await CountActiveAdmins(users, db) <= 1)
                 return Results.BadRequest(new RefusalDto(
                     "C'est le dernier administrateur actif. Nommez-en un autre avant."));
 
@@ -416,7 +419,9 @@ public static class UserEndpoints
                 return Results.BadRequest(new RefusalDto(
                     $"Type de suspension inconnu : « {request.Type} »."));
 
-            if (await users.IsInRoleAsync(user, AppRoles.Admin) && await CountActiveAdmins(users, db) <= 1)
+            if (await users.IsInRoleAsync(user, AppRoles.Admin)
+                && await IsActiveAdmin(db, user)
+                && await CountActiveAdmins(users, db) <= 1)
                 return Results.BadRequest(new RefusalDto(
                     "C'est le dernier administrateur actif. Nommez-en un autre avant."));
 
@@ -519,7 +524,9 @@ public static class UserEndpoints
                 return Results.BadRequest(new RefusalDto(
                     "Vous ne pouvez pas supprimer votre propre compte."));
 
-            if (await users.IsInRoleAsync(user, AppRoles.Admin) && await CountActiveAdmins(users, db) <= 1)
+            if (await users.IsInRoleAsync(user, AppRoles.Admin)
+                && await IsActiveAdmin(db, user)
+                && await CountActiveAdmins(users, db) <= 1)
                 return Results.BadRequest(new RefusalDto(
                     "C'est le dernier administrateur actif. Nommez-en un autre avant."));
 
@@ -560,6 +567,12 @@ public static class UserEndpoints
         {
             if (string.IsNullOrWhiteSpace(request.Name))
                 return Results.BadRequest(new RefusalDto("Le nom du rôle est obligatoire."));
+
+            // La colonne AspNetRoles.NormalizedName est un nvarchar(256) : sans
+            // ce contrôle, un nom trop long fait échouer l'insertion en base
+            // et laisse fuiter une exception EF Core/SQL Server brute.
+            if (request.Name.Length > 256)
+                return Results.BadRequest(new RefusalDto("Le nom du rôle ne peut pas dépasser 256 caractères."));
 
             if (await roles.RoleExistsAsync(request.Name))
                 return Results.Conflict(new RefusalDto($"Le rôle « {request.Name} » existe déjà."));
@@ -603,6 +616,14 @@ public static class UserEndpoints
 
     private static bool IsSelf(ClaimsPrincipal current, ApplicationUser user)
         => current.FindFirst(ClaimTypes.NameIdentifier)?.Value == user.Id;
+
+    // Le compte cible est-il lui-même actif ? Si non (déjà suspendu ou
+    // désactivé), agir dessus ne change rien au nombre d'admins actifs —
+    // le garde-fou "dernier admin actif" ne doit alors pas s'appliquer,
+    // sinon un admin déjà inactif devient impossible à nettoyer tant qu'il
+    // est le seul autre admin du système.
+    private static async Task<bool> IsActiveAdmin(ApplicationDbContext db, ApplicationUser user)
+        => !(await AccountStatusChecker.CheckAsync(db, user)).IsBlocked;
 
     // Un admin actuellement suspendu ne compte pas comme "actif" : sinon,
     // suspendre le dernier admin non-désactivé laisserait la plateforme

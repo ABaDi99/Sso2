@@ -42,9 +42,27 @@ public static class AccountEndpoints
                 lockoutOnFailure: true);
 
             if (result.IsLockedOut)
+            {
+                // Distinct d'une désactivation par un administrateur (déjà
+                // traitée plus haut, via AccountStatusChecker) : ceci est le
+                // verrouillage temporaire automatique d'ASP.NET Identity après
+                // plusieurs mots de passe erronés. Un même message pour les
+                // deux cas laisserait croire à un utilisateur qui s'est juste
+                // trompé de mot de passe que son compte a été coupé.
+                var lockoutEnd = await userManager.GetLockoutEndDateAsync(candidate!);
+                var minutes = lockoutEnd is null
+                    ? (int?)null
+                    : Math.Max(1, (int)Math.Ceiling((lockoutEnd.Value - DateTimeOffset.UtcNow).TotalMinutes));
+
                 return Results.Json(
-                    new { error = "Ce compte a été désactivé." },
+                    new
+                    {
+                        error = minutes is null
+                            ? "Trop de tentatives échouées. Réessayez plus tard."
+                            : $"Trop de tentatives échouées. Réessayez dans {minutes} minute{(minutes > 1 ? "s" : "")}."
+                    },
                     statusCode: 423);
+            }
 
             if (!result.Succeeded)
                 return Results.Json(
