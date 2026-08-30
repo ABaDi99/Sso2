@@ -20,6 +20,7 @@ export function CreateClientDialog({
   const [displayName, setDisplayName] = useState("");
   const [confidential, setConfidential] = useState(true);
   const [uris, setUris] = useState("");
+  const [postLogoutUris, setPostLogoutUris] = useState("");
   const [scopes, setScopes] = useState<string[]>([
     "openid",
     "profile",
@@ -45,12 +46,18 @@ export function CreateClientDialog({
       .map((u) => u.trim())
       .filter(Boolean);
 
+    const postLogoutRedirectUris = postLogoutUris
+      .split("\n")
+      .map((u) => u.trim())
+      .filter(Boolean);
+
     try {
       const result = await api.clients.create({
         clientId: clientId.trim(),
         displayName: displayName.trim() || undefined,
         clientType: confidential ? "confidential" : "public",
         redirectUris,
+        postLogoutRedirectUris,
         scopes,
       });
       onCreated(result);
@@ -158,6 +165,23 @@ export function CreateClientDialog({
             <p className="hint">
               Une par ligne. Le serveur les compare au caractère près : une
               barre oblique en trop suffit à faire échouer la connexion.
+            </p>
+          </div>
+
+          <div className="field">
+            <label htmlFor="post-logout-uris">
+              Adresses de retour après déconnexion
+            </label>
+            <textarea
+              id="post-logout-uris"
+              value={postLogoutUris}
+              onChange={(e) => setPostLogoutUris(e.target.value)}
+              placeholder={"http://localhost:5173"}
+            />
+            <p className="hint">
+              Une par ligne, facultatif. Sans adresse enregistrée ici,
+              l'application ne pourra pas renvoyer l'utilisateur chez elle
+              après une déconnexion — il restera sur une page de SsoServer.
             </p>
           </div>
 

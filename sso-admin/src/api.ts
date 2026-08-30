@@ -173,7 +173,12 @@ export const api = {
       post<ClientCreated>("/admin/api/clients", body),
     update: (
       id: string,
-      body: { displayName?: string; redirectUris: string[]; scopes?: string[] }
+      body: {
+        displayName?: string;
+        redirectUris: string[];
+        postLogoutRedirectUris?: string[];
+        scopes?: string[];
+      }
     ) => put<Client>(`/admin/api/clients/${id}`, body),
     rotateSecret: (id: string) =>
       post<{ clientSecret: string; notice: string }>(

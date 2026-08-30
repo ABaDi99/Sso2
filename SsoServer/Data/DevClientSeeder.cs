@@ -62,7 +62,7 @@ public static class DevClientSeeder
                 ClientSecret: "binome-secret-789",
                 DisplayName: "Application du binôme",
                 RedirectUris: [$"http://{binome}:5200/auth/callback"],
-                PostLogout: []));
+                PostLogout: [$"http://{binome}:5173"]));
         }
 
         await SeedUsersAsync(scope.ServiceProvider, logger);

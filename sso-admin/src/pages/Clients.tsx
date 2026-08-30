@@ -4,6 +4,7 @@ import { ActionsMenu } from "../components/ActionsMenu";
 import { SecretReveal } from "../components/SecretReveal";
 import { CreateClientDialog } from "../components/CreateClientDialog";
 import { ClientDetailDialog } from "../components/ClientDetailDialog";
+import { EditClientDialog } from "../components/EditClientDialog";
 import { useApiAction } from "../hooks/useApiAction";
 import { usePagination } from "../hooks/usePagination";
 import { Pager } from "../components/Pager";
@@ -16,6 +17,7 @@ export default function ClientsPage() {
   const [creating, setCreating] = useState(false);
   const [revealed, setRevealed] = useState<ClientCreated | null>(null);
   const [viewing, setViewing] = useState<Client | null>(null);
+  const [editing, setEditing] = useState<Client | null>(null);
   const { run } = useApiAction(setError);
 
   async function load() {
@@ -140,6 +142,7 @@ export default function ClientsPage() {
                   <ActionsMenu
                     items={[
                       { label: "Voir les détails", onClick: () => setViewing(c) },
+                      { label: "Modifier", onClick: () => setEditing(c) },
                       ...(c.hasSecret
                         ? [{ label: "Nouveau secret", onClick: () => rotate(c) }]
                         : []),
@@ -170,6 +173,17 @@ export default function ClientsPage() {
 
       {viewing && (
         <ClientDetailDialog client={viewing} onCancel={() => setViewing(null)} />
+      )}
+
+      {editing && (
+        <EditClientDialog
+          client={editing}
+          onCancel={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
       )}
     </>
   );
