@@ -169,6 +169,7 @@ export const api = {
 
   clients: {
     list: () => get<Client[]>("/admin/api/clients"),
+    get: (id: string) => get<Client>(`/admin/api/clients/${id}`),
     create: (body: CreateClientBody) =>
       post<ClientCreated>("/admin/api/clients", body),
     update: (

@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { api, goToLogin, type Session } from "./api";
 import ClientsPage from "./pages/Clients";
+import ClientDetailPage from "./pages/ClientDetail";
 import UsersPage from "./pages/Users";
 import RolesPage from "./pages/Roles";
 import "./styles.css";
@@ -195,6 +196,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/clients" replace />} />
             <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/clients/:id" element={<ClientDetailPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/roles" element={<RolesPage />} />
           </Routes>

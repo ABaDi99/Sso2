@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, type Client, type ClientCreated } from "../api";
 import { ActionsMenu } from "../components/ActionsMenu";
 import { SecretReveal } from "../components/SecretReveal";
 import { CreateClientDialog } from "../components/CreateClientDialog";
-import { ClientDetailDialog } from "../components/ClientDetailDialog";
 import { EditClientDialog } from "../components/EditClientDialog";
 import { useApiAction } from "../hooks/useApiAction";
 import { usePagination } from "../hooks/usePagination";
@@ -12,11 +12,11 @@ import { Pager } from "../components/Pager";
 const PAGE_SIZE = 5;
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [revealed, setRevealed] = useState<ClientCreated | null>(null);
-  const [viewing, setViewing] = useState<Client | null>(null);
   const [editing, setEditing] = useState<Client | null>(null);
   const { run } = useApiAction(setError);
 
@@ -115,7 +115,7 @@ export default function ClientsPage() {
                   <button
                     type="button"
                     className="row-title row-title-btn"
-                    onClick={() => setViewing(c)}
+                    onClick={() => navigate(`/clients/${c.id}`)}
                   >
                     {c.clientId}
                   </button>
@@ -141,7 +141,7 @@ export default function ClientsPage() {
                 <div className="row-actions">
                   <ActionsMenu
                     items={[
-                      { label: "Voir les détails", onClick: () => setViewing(c) },
+                      { label: "Voir les détails", onClick: () => navigate(`/clients/${c.id}`) },
                       { label: "Modifier", onClick: () => setEditing(c) },
                       ...(c.hasSecret
                         ? [{ label: "Nouveau secret", onClick: () => rotate(c) }]
@@ -169,10 +169,6 @@ export default function ClientsPage() {
             load();
           }}
         />
-      )}
-
-      {viewing && (
-        <ClientDetailDialog client={viewing} onCancel={() => setViewing(null)} />
       )}
 
       {editing && (
