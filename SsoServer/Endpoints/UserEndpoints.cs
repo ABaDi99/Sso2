@@ -42,6 +42,7 @@ public static class UserEndpoints
             UserManager<ApplicationUser> users,
             ApplicationDbContext db,
             string? search,
+            string? roleId,
             CancellationToken ct,
             int page = 1,
             int pageSize = 20) =>
@@ -57,6 +58,29 @@ public static class UserEndpoints
                 query = query.Where(u =>
                     u.NormalizedEmail!.Contains(term) ||
                     u.NormalizedUserName!.Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(roleId))
+            {
+                // Un rôle est soit global (attribution native Identity, table
+                // AspNetUserRoles), soit applicatif (UserApplicationRoles) —
+                // on ne sait pas lequel sans le lire, donc on cherche des deux
+                // côtés : par construction, un roleId ne peut matcher que
+                // l'un des deux.
+                var matchingUserIds = await db.UserRoles
+                    .AsNoTracking()
+                    .Where(ur => ur.RoleId == roleId)
+                    .Select(ur => ur.UserId)
+                    .Union(db.UserApplicationRoles
+                        .AsNoTracking()
+                        // Écarte les assignations historiques dont le rôle
+                        // n'appartient plus à l'application de l'assignation
+                        // (voir le commentaire équivalent dans ClientEndpoints).
+                        .Where(ur => ur.RoleId == roleId && ur.Role.ClientId == ur.ClientId)
+                        .Select(ur => ur.UserId))
+                    .ToListAsync(ct);
+
+                query = query.Where(u => matchingUserIds.Contains(u.Id));
             }
 
             var total = await query.CountAsync(ct);

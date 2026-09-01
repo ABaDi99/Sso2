@@ -14,6 +14,7 @@ import { PasswordDialog } from "../components/PasswordDialog";
 import { formatDate } from "../lib/format";
 import { useApiAction } from "../hooks/useApiAction";
 import { Pager } from "../components/Pager";
+import { Select } from "../components/Select";
 
 // Un seul dialogue ouvert à la fois : un état structuré plutôt que 4
 // useState<User | null> indépendants, qui n'excluaient pas techniquement
@@ -30,6 +31,7 @@ export default function UsersPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -37,11 +39,11 @@ export default function UsersPage() {
 
   const load = useCallback(async () => {
     const result = await run(
-      () => api.users.list(search || undefined, page),
+      () => api.users.list(search || undefined, page, 5, roleFilter || undefined),
       "Chargement impossible."
     );
     if (result.success) setData(result.value);
-  }, [search, page, run]);
+  }, [search, roleFilter, page, run]);
 
   useEffect(() => {
     load();
@@ -132,6 +134,26 @@ export default function UsersPage() {
               setPage(1);
             }}
           />
+          <Select
+            value={roleFilter}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ minWidth: 240 }}
+          >
+            <option value="">Tous les rôles</option>
+            {[...roles]
+              .sort((a, b) =>
+                (a.clientDisplayName ?? "").localeCompare(b.clientDisplayName ?? "") ||
+                a.name.localeCompare(b.name)
+              )
+              .map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} — {r.clientDisplayName ?? "Admin (global)"}
+                </option>
+              ))}
+          </Select>
         </div>
 
         {data === null ? (

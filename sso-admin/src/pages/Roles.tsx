@@ -13,6 +13,7 @@ export default function RolesPage() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
+  const [filterClientId, setFilterClientId] = useState("");
   const [busy, setBusy] = useState(false);
   const { run } = useApiAction(setError);
 
@@ -57,8 +58,14 @@ export default function RolesPage() {
     if (result.success) load();
   }
 
+  const filteredRoles = (roles ?? []).filter((r) => {
+    if (!filterClientId) return true;
+    if (filterClientId === "global") return r.clientId === null;
+    return r.clientId === filterClientId;
+  });
+
   const { page, setPage, pageCount, pageItems } = usePagination(
-    roles ?? [],
+    filteredRoles,
     PAGE_SIZE
   );
 
@@ -114,6 +121,24 @@ export default function RolesPage() {
           </p>
         )}
 
+        {roles !== null && roles.length > 0 && (
+          <div className="toolbar" style={{ marginTop: -6 }}>
+            <Select
+              value={filterClientId}
+              onChange={(e) => setFilterClientId(e.target.value)}
+              style={{ minWidth: 240 }}
+            >
+              <option value="">Toutes les applications</option>
+              <option value="global">Admin (global)</option>
+              {clients.map((c) => (
+                <option key={c.clientId} value={c.clientId}>
+                  {c.displayName ?? c.clientId}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+
         {roles === null ? (
           <div className="loading">Chargement…</div>
         ) : roles.length === 0 ? (
@@ -124,6 +149,11 @@ export default function RolesPage() {
               Manager. Gardez-les larges — les permissions fines appartiennent
               à chaque application.
             </p>
+          </div>
+        ) : filteredRoles.length === 0 ? (
+          <div className="empty">
+            <h2>Aucun rôle pour ce filtre</h2>
+            <p>Cette application n'a aucun rôle — changez de filtre ou créez-en un ci-dessus.</p>
           </div>
         ) : (
           <>
