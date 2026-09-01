@@ -117,6 +117,7 @@ export interface User {
   isSuspended: boolean;
   suspendedUntil: string | null;
   roles: string[];
+  appRoleCount: number;
 }
 
 export interface UserList {

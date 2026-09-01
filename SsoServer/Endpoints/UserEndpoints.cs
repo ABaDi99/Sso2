@@ -350,8 +350,10 @@ public static class UserEndpoints
     {
         var roles = await users.GetRolesAsync(user);
         var status = await AccountStatusChecker.CheckAsync(db, user);
+        var appRoleCount = await db.UserApplicationRoles
+            .CountAsync(ur => ur.UserId == user.Id && ur.Role.ClientId == ur.ClientId);
 
-        return ToDto(user, roles, status);
+        return ToDto(user, roles, status, appRoleCount);
     }
 
     // Version "batch" pour /admin/api/users : la version au-dessus, appelée
@@ -381,6 +383,13 @@ public static class UserEndpoints
             .Select(g => new { UserId = g.Key, Until = g.Max(s => s.DateFin) })
             .ToDictionaryAsync(x => x.UserId, x => x.Until, ct);
 
+        var appRoleCountByUser = await db.UserApplicationRoles
+            .AsNoTracking()
+            .Where(ur => userIds.Contains(ur.UserId) && ur.Role.ClientId == ur.ClientId)
+            .GroupBy(ur => ur.UserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count, ct);
+
         var result = new List<UserDto>(pagedUsers.Count);
         foreach (var user in pagedUsers)
         {
@@ -389,14 +398,16 @@ public static class UserEndpoints
             var status = new AccountBlockStatus(
                 isSuspended ? AccountBlockReason.Suspended : AccountBlockReason.None,
                 isSuspended ? until : null);
+            var appRoleCount = appRoleCountByUser.GetValueOrDefault(user.Id);
 
-            result.Add(ToDto(user, roles, status));
+            result.Add(ToDto(user, roles, status, appRoleCount));
         }
 
         return result;
     }
 
-    private static UserDto ToDto(ApplicationUser user, IList<string> roles, AccountBlockStatus status) =>
+    private static UserDto ToDto(
+        ApplicationUser user, IList<string> roles, AccountBlockStatus status, int appRoleCount) =>
         new(
             Id: user.Id,
             Email: user.Email,
@@ -406,5 +417,6 @@ public static class UserEndpoints
             IsActive: user.LockoutEnd is null || user.LockoutEnd <= DateTimeOffset.UtcNow,
             IsSuspended: status.Reason == AccountBlockReason.Suspended,
             SuspendedUntil: status.Reason == AccountBlockReason.Suspended ? status.Until : null,
-            Roles: [.. roles]);
+            Roles: [.. roles],
+            AppRoleCount: appRoleCount);
 }

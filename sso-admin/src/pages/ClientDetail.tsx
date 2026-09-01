@@ -8,6 +8,7 @@ import {
   type ClientRoleAssignment,
 } from "../api";
 import { EditClientDialog } from "../components/EditClientDialog";
+import { groupPermissions } from "../lib/permissions";
 
 export default function ClientDetailPage() {
   const { id = "" } = useParams();
@@ -82,9 +83,23 @@ export default function ClientDetailPage() {
               <dd>{client.redirectUris.join(", ") || "—"}</dd>
               <dt>Après déconnexion</dt>
               <dd>{client.postLogoutRedirectUris.join(", ") || "—"}</dd>
-              <dt>Permissions</dt>
-              <dd>{client.permissions.join(", ")}</dd>
             </dl>
+
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
+              <label>Permissions techniques (OpenIddict)</label>
+              {groupPermissions(client.permissions).map((group) => (
+                <div key={group.key} style={{ marginTop: 10 }}>
+                  <div className="row-sub" style={{ marginBottom: 6 }}>{group.label}</div>
+                  <div className="tags">
+                    {group.items.map((p) => (
+                      <span className="tag" key={p.code} title={p.code}>
+                        {p.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
 
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--line-soft)" }}>
               <label>Comptes reliés à cette application, avec leur rôle</label>

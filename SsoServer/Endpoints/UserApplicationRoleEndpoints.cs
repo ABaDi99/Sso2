@@ -36,7 +36,11 @@ public static class UserApplicationRoleEndpoints
 
             var assignments = await db.UserApplicationRoles
                 .AsNoTracking()
-                .Where(x => x.UserId == id)
+                // Voir le commentaire équivalent dans ClientEndpoints : on
+                // écarte les assignations dont le rôle n'appartient plus à
+                // l'application enregistrée sur l'assignation (données
+                // historiques antérieures au rattachement rôle→application).
+                .Where(x => x.UserId == id && x.Role.ClientId == x.ClientId)
                 .Include(x => x.Role)
                 .ToListAsync(ct);
 
