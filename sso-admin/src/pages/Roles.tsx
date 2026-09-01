@@ -3,7 +3,7 @@ import { api, type Client, type Role } from "../api";
 import { useApiAction } from "../hooks/useApiAction";
 import { usePagination } from "../hooks/usePagination";
 import { Pager } from "../components/Pager";
-import { Select } from "../components/Select";
+import { SearchSelect } from "../components/SearchSelect";
 
 const PAGE_SIZE = 5;
 
@@ -94,17 +94,16 @@ export default function RolesPage() {
             onKeyDown={(e) => e.key === "Enter" && create()}
           />
           {clients.length > 0 && (
-            <Select
+            <SearchSelect
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+              onChange={setClientId}
+              placeholder="Application…"
               style={{ minWidth: 220 }}
-            >
-              {clients.map((c) => (
-                <option key={c.clientId} value={c.clientId}>
-                  {c.displayName ?? c.clientId}
-                </option>
-              ))}
-            </Select>
+              options={clients.map((c) => ({
+                value: c.clientId,
+                label: c.displayName ?? c.clientId,
+              }))}
+            />
           )}
           <button
             className="btn primary"
@@ -123,19 +122,20 @@ export default function RolesPage() {
 
         {roles !== null && roles.length > 0 && (
           <div className="toolbar" style={{ marginTop: -6 }}>
-            <Select
+            <SearchSelect
               value={filterClientId}
-              onChange={(e) => setFilterClientId(e.target.value)}
-              style={{ minWidth: 240 }}
-            >
-              <option value="">Toutes les applications</option>
-              <option value="global">Admin (global)</option>
-              {clients.map((c) => (
-                <option key={c.clientId} value={c.clientId}>
-                  {c.displayName ?? c.clientId}
-                </option>
-              ))}
-            </Select>
+              onChange={setFilterClientId}
+              placeholder="Filtrer par application…"
+              style={{ minWidth: 260 }}
+              options={[
+                { value: "", label: "Toutes les applications" },
+                { value: "global", label: "Admin (global)" },
+                ...clients.map((c) => ({
+                  value: c.clientId,
+                  label: c.displayName ?? c.clientId,
+                })),
+              ]}
+            />
           </div>
         )}
 

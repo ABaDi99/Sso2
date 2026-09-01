@@ -345,6 +345,56 @@ select {
   pointer-events: none;
 }
 
+.search-select {
+  position: relative;
+}
+.search-select-input {
+  cursor: text;
+}
+.search-select-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+}
+.search-select-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.search-select-item:hover,
+.search-select-item.active {
+  background: var(--sunken);
+}
+.search-select-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.search-select-empty {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
