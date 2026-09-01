@@ -170,7 +170,7 @@ export default function UsersPage() {
                             : ""}
                         </span>
                       )}
-                      {u.roles.length === 0 ? (
+                      {u.roles.length === 0 && u.appRoleCount === 0 ? (
                         <span className="tag">aucun rôle</span>
                       ) : (
                         u.roles.map((r) => (
@@ -178,6 +178,12 @@ export default function UsersPage() {
                             {r}
                           </span>
                         ))
+                      )}
+                      {u.appRoleCount > 0 && (
+                        <span className="tag" title="Rôles attribués sur une ou plusieurs applications — voir « Rôles applicatifs »">
+                          {u.appRoleCount} rôle{u.appRoleCount > 1 ? "s" : ""} applicatif
+                          {u.appRoleCount > 1 ? "s" : ""}
+                        </span>
                       )}
                     </div>
                   </div>

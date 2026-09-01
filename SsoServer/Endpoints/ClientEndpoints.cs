@@ -160,7 +160,12 @@ public static class ClientEndpoints
 
             var assignments = await db.UserApplicationRoles
                 .AsNoTracking()
-                .Where(x => x.ClientId == clientId)
+                // Le rôle assigné doit appartenir à cette même application :
+                // sinon c'est une assignation historique antérieure au
+                // rattachement des rôles à une application (ex. l'ancien rôle
+                // global Admin référencé ici par erreur) — donnée obsolète,
+                // pas une vraie assignation pour cette application.
+                .Where(x => x.ClientId == clientId && x.Role.ClientId == clientId)
                 .Include(x => x.Role)
                 .ToListAsync(ct);
 

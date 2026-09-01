@@ -427,18 +427,28 @@ textarea:focus {
 }
 
 .row-title-btn {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: none;
   padding: 0;
   margin: 0;
-  color: inherit;
+  color: var(--accent);
   text-align: left;
   cursor: pointer;
 }
+.row-title-btn::after {
+  content: "→";
+  font-family: var(--sans, inherit);
+  font-size: 12px;
+  opacity: 0.55;
+}
 .row-title-btn:hover {
-  color: var(--accent);
   text-decoration: underline;
+}
+.row-title-btn:hover::after {
+  opacity: 1;
 }
 
 .row-sub {

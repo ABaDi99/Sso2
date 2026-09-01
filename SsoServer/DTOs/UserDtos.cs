@@ -11,7 +11,11 @@ public record UserDto(
     /// Vrai quand une période de suspension couvre la date du jour — indépendant d'IsActive.
     bool IsSuspended,
     DateTimeOffset? SuspendedUntil,
-    string[] Roles);
+    string[] Roles,
+    /// Nombre de rôles applicatifs (par application) attribués à ce compte —
+    /// les rôles globaux ci-dessus n'incluent plus que Admin depuis que les
+    /// rôles métier appartiennent chacun à une application.
+    int AppRoleCount);
 
 public record UserSuspensionDto(
     int Id,
