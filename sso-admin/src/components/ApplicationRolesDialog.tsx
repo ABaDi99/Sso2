@@ -8,7 +8,7 @@ import {
   type User,
   type UserApplicationRole,
 } from "../api";
-import { Select } from "./Select";
+import { SearchSelect } from "./SearchSelect";
 
 export function ApplicationRolesDialog({
   user,
@@ -129,34 +129,32 @@ export function ApplicationRolesDialog({
             <div className="field" style={{ marginTop: 14 }}>
               <label>Ajouter un rôle pour une application</label>
               <div style={{ display: "flex", gap: 8 }}>
-                <Select
+                <SearchSelect
                   style={{ flex: 1, minWidth: 0 }}
                   value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                >
-                  {clients.map((c) => (
-                    <option key={c.clientId} value={c.clientId}>
-                      {c.displayName ?? c.clientId}
-                    </option>
-                  ))}
-                </Select>
+                  onChange={setClientId}
+                  placeholder="Application…"
+                  options={clients.map((c) => ({
+                    value: c.clientId,
+                    label: c.displayName ?? c.clientId,
+                  }))}
+                />
                 {rolesForClient.length === 0 ? (
                   <p className="hint" style={{ flex: 1, margin: 0, alignSelf: "center" }}>
                     Aucun rôle pour cette application — créez-en un dans
                     l'onglet Rôles.
                   </p>
                 ) : (
-                  <Select
+                  <SearchSelect
                     style={{ flex: 1, minWidth: 0 }}
                     value={roleName}
-                    onChange={(e) => setRoleName(e.target.value)}
-                  >
-                    {rolesForClient.map((r) => (
-                      <option key={r.id} value={r.name}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </Select>
+                    onChange={setRoleName}
+                    placeholder="Rôle…"
+                    options={rolesForClient.map((r) => ({
+                      value: r.name,
+                      label: r.name,
+                    }))}
+                  />
                 )}
                 <button
                   className="btn small primary"
