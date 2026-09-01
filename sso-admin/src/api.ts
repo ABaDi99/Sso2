@@ -194,10 +194,11 @@ export const api = {
   },
 
   users: {
-    list: (search?: string, page = 1, pageSize = 5) =>
+    list: (search?: string, page = 1, pageSize = 5, roleId?: string) =>
       get<UserList>(
         `/admin/api/users?page=${page}&pageSize=${pageSize}` +
-          (search ? `&search=${encodeURIComponent(search)}` : "")
+          (search ? `&search=${encodeURIComponent(search)}` : "") +
+          (roleId ? `&roleId=${encodeURIComponent(roleId)}` : "")
       ),
     create: (body: { email: string; password: string; roles?: string[] }) =>
       post<User>("/admin/api/users", body),
