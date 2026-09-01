@@ -831,6 +831,31 @@ textarea:focus {
   border-radius: 11px;
 }
 
+.panel {
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+}
+.panel h2 {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0 0 14px;
+}
+.panel-fields {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.panel-fields .field {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
 .stat {
   display: flex;
   flex-direction: column;

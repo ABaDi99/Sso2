@@ -85,48 +85,61 @@ export default function RolesPage() {
       <div className="body">
         {error && <div className="notice">{error}</div>}
 
-        <div className="toolbar">
-          <input
-            type="text"
-            placeholder="Nom du nouveau rôle"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && create()}
-          />
-          {clients.length > 0 && (
-            <SearchSelect
-              value={clientId}
-              onChange={setClientId}
-              placeholder="Application…"
-              style={{ minWidth: 220 }}
-              options={clients.map((c) => ({
-                value: c.clientId,
-                label: c.displayName ?? c.clientId,
-              }))}
-            />
-          )}
-          <button
-            className="btn primary"
-            onClick={create}
-            disabled={busy || !name.trim() || !clientId}
-          >
-            Créer
-          </button>
-        </div>
-        {clients.length === 0 && roles !== null && (
-          <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
-            Aucune application déclarée — déclarez-en une dans l'onglet
-            Applications avant de créer un rôle.
-          </p>
+        {clients.length === 0 ? (
+          roles !== null && (
+            <p className="hint" style={{ marginBottom: 16 }}>
+              Aucune application déclarée — déclarez-en une dans l'onglet
+              Applications avant de créer un rôle.
+            </p>
+          )
+        ) : (
+          <div className="panel">
+            <h2>Créer un rôle</h2>
+            <div className="panel-fields">
+              <div className="field">
+                <label>Application</label>
+                <SearchSelect
+                  value={clientId}
+                  onChange={setClientId}
+                  placeholder="Choisir l'application…"
+                  options={clients.map((c) => ({
+                    value: c.clientId,
+                    label: c.displayName ?? c.clientId,
+                  }))}
+                />
+              </div>
+              <div className="field">
+                <label>Nom du rôle</label>
+                <input
+                  type="text"
+                  placeholder="Employe, Comptable, Manager…"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && create()}
+                />
+              </div>
+              <button
+                className="btn primary"
+                onClick={create}
+                disabled={busy || !name.trim() || !clientId}
+              >
+                Créer
+              </button>
+            </div>
+            <p className="hint" style={{ marginTop: 10, marginBottom: 0 }}>
+              Le rôle sera propre à l'application choisie — une autre
+              application peut avoir un rôle du même nom sans conflit.
+            </p>
+          </div>
         )}
 
         {roles !== null && roles.length > 0 && (
-          <div className="toolbar" style={{ marginTop: -6 }}>
+          <div className="field" style={{ maxWidth: 320 }}>
+            <label>Filtrer la liste par application</label>
             <SearchSelect
               value={filterClientId}
               onChange={setFilterClientId}
-              placeholder="Filtrer par application…"
-              style={{ minWidth: 260 }}
+              placeholder="Toutes les applications…"
               options={[
                 { value: "", label: "Toutes les applications" },
                 { value: "global", label: "Admin (global)" },
