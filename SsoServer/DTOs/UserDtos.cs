@@ -53,9 +53,11 @@ public record SetPasswordRequest(string NewPassword);
 /// </summary>
 public record RefusalDto(string Error);
 
-public record RoleDto(string Id, string Name, int UserCount);
+/// ClientId nul = rôle global (uniquement Admin). ClientDisplayName est
+/// résolu à partir de ClientId pour l'affichage, jamais stocké tel quel.
+public record RoleDto(string Id, string Name, string? ClientId, string? ClientDisplayName, int UserCount);
 
-public record CreateRoleRequest(string Name);
+public record CreateRoleRequest(string Name, string ClientId);
 
 public record UserApplicationRoleDto(
     int Id,

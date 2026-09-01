@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenIddict.Abstractions;
 using SsoServer.Data;
 using SsoServer.Endpoints;
@@ -22,13 +23,20 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // scoped reste cohérent avec le cycle de vie de ses dépendances.
 builder.Services.AddScoped<AccountLoginService>();
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 {
     options.Password.RequiredLength = 8;
     options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
+
+// Remplace le RoleValidator par défaut (unicité du nom globale, sans
+// connaître ClientId) par un qui vérifie (nom, application) — voir
+// ApplicationRoleValidator. AddRoleValidator<> ajoute à la collection
+// sans retirer le défaut, d'où le RemoveAll explicite.
+builder.Services.RemoveAll<IRoleValidator<ApplicationRole>>();
+builder.Services.AddScoped<IRoleValidator<ApplicationRole>, ApplicationRoleValidator>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

@@ -19,7 +19,7 @@ public static class BootstrapSeeder
         using var scope = app.Services.CreateScope();
         var services = scope.ServiceProvider;
 
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var roleManager = services.GetRequiredService<RoleManager<ApplicationRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var config = services.GetRequiredService<IConfiguration>();
         var logger = services.GetRequiredService<ILoggerFactory>()
@@ -28,7 +28,7 @@ public static class BootstrapSeeder
         // ===== 1. Le rôle Admin =====
         if (!await roleManager.RoleExistsAsync(AppRoles.Admin))
         {
-            var created = await roleManager.CreateAsync(new IdentityRole(AppRoles.Admin));
+            var created = await roleManager.CreateAsync(new ApplicationRole(AppRoles.Admin));
 
             if (!created.Succeeded)
             {

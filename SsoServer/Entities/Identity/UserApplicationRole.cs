@@ -1,10 +1,11 @@
-using Microsoft.AspNetCore.Identity;
-
 namespace SsoServer.Entities.Identity;
 
-// Un rôle (du catalogue global AspNetRoles) accordé à un utilisateur pour
-// une application cliente OpenIddict précise (ClientId). S'ajoute aux
-// rôles globaux de l'utilisateur, ne les remplace pas.
+// Assigne à un utilisateur, pour une application cliente OpenIddict
+// précise (ClientId), un rôle qui — depuis l'introduction du champ
+// ApplicationRole.ClientId — appartient déjà à cette même application.
+// Le ClientId porté ici reste utile pour interroger "les rôles de cet
+// utilisateur pour cette application" sans repasser par une jointure sur
+// Role, mais doit toujours correspondre à Role.ClientId.
 public class UserApplicationRole
 {
     public int Id { get; set; }
@@ -17,5 +18,5 @@ public class UserApplicationRole
     public string ClientId { get; set; } = null!;
 
     public string RoleId { get; set; } = null!;
-    public IdentityRole Role { get; set; } = null!;
+    public ApplicationRole Role { get; set; } = null!;
 }

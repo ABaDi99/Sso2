@@ -129,6 +129,8 @@ export interface UserList {
 export interface Role {
   id: string;
   name: string;
+  clientId: string | null;
+  clientDisplayName: string | null;
   userCount: number;
 }
 
@@ -236,11 +238,15 @@ export const api = {
   },
 
   roles: {
-    list: () => get<Role[]>("/admin/api/roles"),
-    create: (name: string) =>
-      post<{ name: string }>("/admin/api/roles", { name }),
-    remove: (name: string) =>
-      del(`/admin/api/roles/${encodeURIComponent(name)}`),
+    list: (clientId?: string) =>
+      get<Role[]>(
+        clientId
+          ? `/admin/api/roles?clientId=${encodeURIComponent(clientId)}`
+          : "/admin/api/roles"
+      ),
+    create: (name: string, clientId: string) =>
+      post<Role>("/admin/api/roles", { name, clientId }),
+    remove: (id: string) => del(`/admin/api/roles/${encodeURIComponent(id)}`),
   },
 };
 

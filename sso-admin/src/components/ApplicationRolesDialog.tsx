@@ -25,9 +25,18 @@ export function ApplicationRolesDialog({
     null
   );
   const [clientId, setClientId] = useState(clients[0]?.clientId ?? "");
-  const [roleName, setRoleName] = useState(roles[0]?.name ?? "");
+  const rolesForClient = roles.filter((r) => r.clientId === clientId);
+  const [roleName, setRoleName] = useState(rolesForClient[0]?.name ?? "");
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Un rôle appartient à une seule application : changer d'application dans
+  // le sélecteur doit repartir sur un rôle qui existe réellement pour elle,
+  // pas garder la sélection précédente qui n'a plus de sens.
+  useEffect(() => {
+    setRoleName(rolesForClient[0]?.name ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
 
   const load = useCallback(async () => {
     try {
@@ -112,11 +121,9 @@ export function ApplicationRolesDialog({
             </div>
           )}
 
-          {clients.length === 0 || roles.length === 0 ? (
+          {clients.length === 0 ? (
             <p className="hint" style={{ marginTop: 14 }}>
-              {clients.length === 0
-                ? "Aucune application déclarée."
-                : "Aucun rôle n'existe encore — créez-en un dans l'onglet Rôles."}
+              Aucune application déclarée.
             </p>
           ) : (
             <div className="field" style={{ marginTop: 14 }}>
@@ -133,30 +140,36 @@ export function ApplicationRolesDialog({
                     </option>
                   ))}
                 </Select>
-                <Select
-                  style={{ flex: 1, minWidth: 0 }}
-                  value={roleName}
-                  onChange={(e) => setRoleName(e.target.value)}
-                >
-                  {roles.map((r) => (
-                    <option key={r.name} value={r.name}>
-                      {r.name}
-                    </option>
-                  ))}
-                </Select>
+                {rolesForClient.length === 0 ? (
+                  <p className="hint" style={{ flex: 1, margin: 0, alignSelf: "center" }}>
+                    Aucun rôle pour cette application — créez-en un dans
+                    l'onglet Rôles.
+                  </p>
+                ) : (
+                  <Select
+                    style={{ flex: 1, minWidth: 0 }}
+                    value={roleName}
+                    onChange={(e) => setRoleName(e.target.value)}
+                  >
+                    {rolesForClient.map((r) => (
+                      <option key={r.id} value={r.name}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
                 <button
                   className="btn small primary"
                   onClick={assign}
-                  disabled={busy}
+                  disabled={busy || rolesForClient.length === 0}
                   style={{ flexShrink: 0 }}
                 >
                   Ajouter
                 </button>
               </div>
               <p className="hint">
-                Ce rôle ne s'appliquera que dans les jetons émis pour cette
-                application précise — il s'ajoute aux rôles globaux, sans les
-                remplacer.
+                Seuls les rôles créés pour l'application choisie sont
+                proposés — un rôle appartient à une seule application.
               </p>
             </div>
           )}

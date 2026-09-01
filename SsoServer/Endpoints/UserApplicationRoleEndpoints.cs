@@ -68,7 +68,7 @@ public static class UserApplicationRoleEndpoints
             string id,
             AssignApplicationRoleRequest request,
             UserManager<ApplicationUser> users,
-            RoleManager<IdentityRole> roles,
+            RoleManager<ApplicationRole> roles,
             ApplicationDbContext db,
             IOpenIddictApplicationManager manager) =>
         {
@@ -92,10 +92,16 @@ public static class UserApplicationRoleEndpoints
             if (app is null)
                 return Results.BadRequest(new RefusalDto($"Aucune application avec le client_id « {request.ClientId} »."));
 
-            var role = await roles.FindByNameAsync(request.RoleName);
+            // Un rôle appartient à une seule application : FindByNameAsync
+            // ignorerait ClientId et pourrait renvoyer le "Manager" d'une
+            // autre application au lieu de celui de request.ClientId, si
+            // deux applications ont chacune un rôle du même nom.
+            var role = await roles.Roles.FirstOrDefaultAsync(r =>
+                r.Name == request.RoleName && r.ClientId == request.ClientId);
 
             if (role is null)
-                return Results.BadRequest(new RefusalDto($"Le rôle « {request.RoleName} » n'existe pas."));
+                return Results.BadRequest(new RefusalDto(
+                    $"Le rôle « {request.RoleName} » n'existe pas pour cette application."));
 
             var exists = await db.UserApplicationRoles.AnyAsync(x =>
                 x.UserId == id && x.ClientId == request.ClientId && x.RoleId == role.Id);

@@ -86,7 +86,7 @@ public static class UserEndpoints
         group.MapPost("/", async (
             CreateUserRequest request,
             UserManager<ApplicationUser> users,
-            RoleManager<IdentityRole> roles,
+            RoleManager<ApplicationRole> roles,
             ApplicationDbContext db) =>
         {
             if (string.IsNullOrWhiteSpace(request.Email))
@@ -161,7 +161,7 @@ public static class UserEndpoints
             SetRolesRequest request,
             ClaimsPrincipal current,
             UserManager<ApplicationUser> users,
-            RoleManager<IdentityRole> roles,
+            RoleManager<ApplicationRole> roles,
             ApplicationDbContext db,
             ILogger<Program> logger) =>
         {
@@ -171,6 +171,19 @@ public static class UserEndpoints
                 return Results.NotFound(new RefusalDto($"Aucun compte avec l'identifiant {id}."));
 
             var wanted = request.Roles ?? [];
+
+            // Un rôle appartient désormais à une application (voir
+            // ApplicationRole.ClientId) ; le seul rôle réellement global
+            // est Admin. Accepter un autre nom ici risquerait de tomber sur
+            // plusieurs rôles partageant ce nom pour des applications
+            // différentes — Identity (IsInRoleAsync, AddToRolesAsync...)
+            // suppose un nom unique et échoue dans ce cas plutôt que de
+            // choisir. Les rôles applicatifs se gèrent via
+            // /admin/api/users/{id}/app-roles, pas ici.
+            if (wanted.Any(r => !string.Equals(r, AppRoles.Admin, StringComparison.OrdinalIgnoreCase)))
+                return Results.BadRequest(new RefusalDto(
+                    "Seul le rôle Admin peut être attribué globalement. " +
+                    "Les autres rôles s'attribuent par application (« Rôles applicatifs »)."));
 
             // Garde-fou : ne pas se retirer soi-même le rôle Admin.
             if (UserGuards.IsSelf(current, user)

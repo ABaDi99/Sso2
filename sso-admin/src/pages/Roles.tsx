@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { api, type Role } from "../api";
+import { api, type Client, type Role } from "../api";
 import { useApiAction } from "../hooks/useApiAction";
 import { usePagination } from "../hooks/usePagination";
 import { Pager } from "../components/Pager";
+import { Select } from "../components/Select";
 
 const PAGE_SIZE = 5;
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[] | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [clientId, setClientId] = useState("");
   const [busy, setBusy] = useState(false);
   const { run } = useApiAction(setError);
 
@@ -20,13 +23,22 @@ export default function RolesPage() {
 
   useEffect(() => {
     load();
+    run(() => api.clients.list(), "Chargement des applications impossible.").then(
+      (r) => {
+        if (r.success) {
+          setClients(r.value);
+          if (r.value.length > 0) setClientId((c) => c || r.value[0].clientId);
+        }
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function create() {
-    if (!name.trim()) return;
+    if (!name.trim() || !clientId) return;
     setBusy(true);
     const result = await run(
-      () => api.roles.create(name.trim()),
+      () => api.roles.create(name.trim(), clientId),
       "Création impossible."
     );
     setBusy(false);
@@ -39,7 +51,7 @@ export default function RolesPage() {
   async function remove(role: Role) {
     if (!window.confirm(`Supprimer le rôle « ${role.name} » ?`)) return;
     const result = await run(
-      () => api.roles.remove(role.name),
+      () => api.roles.remove(role.id),
       "Suppression impossible."
     );
     if (result.success) load();
@@ -56,8 +68,9 @@ export default function RolesPage() {
         <div>
           <h1>Rôles</h1>
           <p>
-            Ce que la personne est dans l'organisation. Chaque application
-            décide ensuite de ce que ça permet chez elle.
+            Un rôle appartient à une seule application (sauf Admin, qui reste
+            global) — deux applications peuvent avoir chacune un rôle du même
+            nom sans se marcher dessus.
           </p>
         </div>
       </header>
@@ -73,14 +86,33 @@ export default function RolesPage() {
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && create()}
           />
+          {clients.length > 0 && (
+            <Select
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              style={{ minWidth: 220 }}
+            >
+              {clients.map((c) => (
+                <option key={c.clientId} value={c.clientId}>
+                  {c.displayName ?? c.clientId}
+                </option>
+              ))}
+            </Select>
+          )}
           <button
             className="btn primary"
             onClick={create}
-            disabled={busy || !name.trim()}
+            disabled={busy || !name.trim() || !clientId}
           >
             Créer
           </button>
         </div>
+        {clients.length === 0 && roles !== null && (
+          <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
+            Aucune application déclarée — déclarez-en une dans l'onglet
+            Applications avant de créer un rôle.
+          </p>
+        )}
 
         {roles === null ? (
           <div className="loading">Chargement…</div>
@@ -88,9 +120,9 @@ export default function RolesPage() {
           <div className="empty">
             <h2>Aucun rôle</h2>
             <p>
-              Créez un rôle pour distinguer les profils : Employe, Comptable,
-              Manager. Gardez-les larges — les permissions fines appartiennent à
-              chaque application.
+              Créez un rôle pour une application : Employe, Comptable,
+              Manager. Gardez-les larges — les permissions fines appartiennent
+              à chaque application.
             </p>
           </div>
         ) : (
@@ -100,10 +132,15 @@ export default function RolesPage() {
               <article className="row" key={r.id}>
                 <div className="row-main">
                   <div className="row-title">{r.name}</div>
-                  <div className="row-sub">
-                    {r.userCount === 0
-                      ? "aucun compte"
-                      : `${r.userCount} compte${r.userCount > 1 ? "s" : ""}`}
+                  <div className="row-sub tags">
+                    <span className={"tag" + (r.clientId ? " accent" : "")}>
+                      {r.clientDisplayName ?? "global"}
+                    </span>
+                    <span className="tag">
+                      {r.userCount === 0
+                        ? "aucun compte"
+                        : `${r.userCount} compte${r.userCount > 1 ? "s" : ""}`}
+                    </span>
                   </div>
                 </div>
 

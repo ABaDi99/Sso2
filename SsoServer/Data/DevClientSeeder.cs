@@ -158,7 +158,7 @@ public static class DevClientSeeder
     private static async Task SeedUsersAsync(IServiceProvider services, ILogger logger)
     {
         var users = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roles = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var roles = services.GetRequiredService<RoleManager<ApplicationRole>>();
         var db = services.GetRequiredService<ApplicationDbContext>();
         var config = services.GetRequiredService<IConfiguration>();
 
@@ -203,29 +203,37 @@ public static class DevClientSeeder
             foreach (var role in entry.Roles ?? [])
             {
                 if (!await roles.RoleExistsAsync(role))
-                    await roles.CreateAsync(new IdentityRole(role));
+                    await roles.CreateAsync(new ApplicationRole(role));
 
                 if (!await users.IsInRoleAsync(user, role))
                     await users.AddToRoleAsync(user, role);
             }
-
-            // Nettoyage : "Employe" était auparavant un rôle global (avant
-            // l'introduction des rôles par application) — un compte plus
-            // ancien peut encore le porter. On le retire une fois pour
-            // toutes ; l'accès équivalent passe désormais par AppRoles
-            // ci-dessous, propre à chaque application.
-            if (await users.IsInRoleAsync(user, "Employe"))
-                await users.RemoveFromRoleAsync(user, "Employe");
 
             // Rôles applicatifs — idempotent, s'applique aussi à un compte
             // déjà existant (ex : recréé avant l'introduction de la liste
             // blanche par application sur /connect/authorize).
             foreach (var appRole in entry.AppRoles ?? [])
             {
-                if (!await roles.RoleExistsAsync(appRole.Role))
-                    await roles.CreateAsync(new IdentityRole(appRole.Role));
+                // Un rôle appartient à une seule application désormais :
+                // RoleManager.FindByNameAsync/RoleExistsAsync ignorent
+                // ClientId, donc "Employe" pour une autre application ne
+                // doit pas être confondu avec "Employe" pour celle-ci.
+                var role = await roles.Roles.FirstOrDefaultAsync(r =>
+                    r.Name == appRole.Role && r.ClientId == appRole.ClientId);
 
-                var role = await roles.FindByNameAsync(appRole.Role);
+                if (role is null)
+                {
+                    role = new ApplicationRole(appRole.Role) { ClientId = appRole.ClientId };
+                    var roleCreated = await roles.CreateAsync(role);
+
+                    if (!roleCreated.Succeeded)
+                    {
+                        logger.LogError("  Rôle {Role} ({ClientId}) — création impossible : {Errors}",
+                            appRole.Role, appRole.ClientId,
+                            string.Join(" | ", roleCreated.Errors.Select(e => e.Description)));
+                        continue;
+                    }
+                }
 
                 var exists = await db.UserApplicationRoles.AnyAsync(x =>
                     x.UserId == user.Id && x.ClientId == appRole.ClientId && x.RoleId == role!.Id);
