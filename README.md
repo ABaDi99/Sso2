@@ -37,27 +37,32 @@ cd Sso2/SsoServer
 ### 2.1 Secrets (jamais commités, à définir localement)
 
 ```bash
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=SsoServerDb;User Id=sa;Password=VotreMotDePasse123!;TrustServerCertificate=True"
-dotnet user-secrets set "Bootstrap:AdminPassword" "AdminMotDePasse123!"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=SsoServerDb;User Id=sa;Password=<mot-de-passe-sql>;TrustServerCertificate=True"
+dotnet user-secrets set "Bootstrap:AdminPassword" "<choisissez-un-mot-de-passe-fort>"
 ```
 
-Adaptez le mot de passe SQL au vôtre s'il diffère. `Bootstrap:AdminPassword`
-est le mot de passe du **premier compte administrateur**, créé
+Remplacez `<mot-de-passe-sql>` par celui de votre instance SQL Server, et
+`<choisissez-un-mot-de-passe-fort>` par un mot de passe que vous seul
+connaissez — ce sera celui du **premier compte administrateur**, créé
 automatiquement au démarrage avec l'email défini dans
-`appsettings.Development.json` (`admin@entreprise.com` par défaut).
+`appsettings.Development.json` (`admin@entreprise.com` par défaut). Ces
+deux valeurs vivent dans le magasin `user-secrets` de votre machine,
+jamais dans un fichier commité.
 
 ### 2.2 Adapter l'hôte réseau
 
-Ouvrez `appsettings.Development.json` et réglez `Network:Host` :
+Par défaut (rien à faire), tout tourne sur `localhost`. Pour tester avec
+un binôme sur le même réseau local, définissez votre IP via `user-secrets` :
 
-- **Pour tester seul, tout sur la même machine** : supprimez la clé
-  `Network:Host` (ou mettez `"localhost"`) — le code retombe sur
-  `localhost` par défaut.
-- **Pour tester avec un binôme sur le même réseau local** : mettez
-  **votre propre IP locale** (`ipconfig` → adresse IPv4, ex.
-  `192.168.1.72`), et remplissez `Network:BinomeHost` avec l'IP de
-  l'autre machine si vous voulez qu'un troisième client OAuth
-  (`app-binome`) soit créé automatiquement pour elle.
+```bash
+dotnet user-secrets set "Network:Host" "<votre-ip-locale>"
+dotnet user-secrets set "Network:BinomeHost" "<ip-du-binome>"
+```
+
+`<votre-ip-locale>` s'obtient avec `ipconfig` (adresse IPv4, ex.
+`192.168.1.72`). `Network:BinomeHost` est optionnel : renseignez-le si
+vous voulez qu'un troisième client OAuth (`app-binome`) soit créé
+automatiquement pour la machine de l'autre personne.
 
 Cette valeur sert à préconfigurer les `redirect_uri` des applications
 OAuth de démonstration (voir `Data/DevClientSeeder.cs`) — si elle ne
@@ -91,25 +96,21 @@ Vérifiez que ça écoute bien sur `http://localhost:5171` (ou votre IP).
 cd ../ClientApi
 ```
 
-Ouvrez `appsettings.json` et remplacez `192.168.1.72` par **la même
-valeur** que celle choisie pour `Network:Host` à l'étape 2.2 (`localhost`
-si vous testez seul), dans les quatre champs :
+Comme pour SsoServer, ces valeurs se définissent en local via
+`user-secrets`, jamais dans `appsettings.json` (qui reste vide dans le
+dépôt). Avec les valeurs par défaut du seeder de développement, sur la
+même machine que SsoServer :
 
-```json
-{
-  "Sso": {
-    "Authority": "http://localhost:5171",
-    "ClientId": "mon-app-cliente",
-    "ClientSecret": "secret-de-test-123",
-    "RedirectUri": "http://localhost:5200/auth/callback"
-  },
-  "Frontend": {
-    "Url": "http://localhost:5173"
-  }
-}
+```bash
+dotnet user-secrets set "Sso:Authority" "http://localhost:5171"
+dotnet user-secrets set "Sso:ClientId" "mon-app-cliente"
+dotnet user-secrets set "Sso:ClientSecret" "dev-only-demo-client"
+dotnet user-secrets set "Sso:RedirectUri" "http://localhost:5200/auth/callback"
+dotnet user-secrets set "Frontend:Url" "http://localhost:5173"
 ```
 
-Puis :
+Remplacez `localhost` par l'IP choisie à l'étape 2.2 si vous testez avec
+un binôme sur le réseau local. Puis :
 
 ```bash
 dotnet run

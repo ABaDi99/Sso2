@@ -16,7 +16,7 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/auth");
 
-        group.MapGet("/health", () => Results.Ok(new { status = "test badi" })).AllowAnonymous();//autorise 
+        group.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
         group.MapGet("/secret", (ClaimsPrincipal user) =>
         {
