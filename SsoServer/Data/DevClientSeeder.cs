@@ -41,14 +41,14 @@ public static class DevClientSeeder
 
         await Upsert(manager, logger, new DevClient(
             ClientId: "mon-app-cliente",
-            ClientSecret: "secret-de-test-123",
+            ClientSecret: "dev-only-demo-client",
             DisplayName: "Application cliente de démonstration",
             RedirectUris: [$"http://{host}:5200/auth/callback"],
             PostLogout: [$"http://{host}:5173"]));
 
         await Upsert(manager, logger, new DevClient(
             ClientId: "postman-test",
-            ClientSecret: "postman-secret-456",
+            ClientSecret: "dev-only-postman-client",
             DisplayName: "Postman",
             RedirectUris: ["https://oauth.pstmn.io/v1/callback"],
             PostLogout: []));
@@ -59,7 +59,7 @@ public static class DevClientSeeder
         {
             await Upsert(manager, logger, new DevClient(
                 ClientId: "app-binome",
-                ClientSecret: "binome-secret-789",
+                ClientSecret: "dev-only-binome-client",
                 DisplayName: "Application du binôme",
                 RedirectUris: [$"http://{binome}:5200/auth/callback"],
                 PostLogout: [$"http://{binome}:5173"]));
